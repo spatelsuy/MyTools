@@ -1,4 +1,4 @@
-// Initialize PDF.js worker
+// Initialize PDF.js worker // redeploy
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'LIB/pdf.worker.min_2.12.313.js';
 
 const dropArea = document.getElementById('dropArea');
