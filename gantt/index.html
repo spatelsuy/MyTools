@@ -2,178 +2,187 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
 <title>Excel Gantt Timeline Viewer</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        font-family: Arial, sans-serif;
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+    padding:20px;
+    color:#222;
+}
+
+.container{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.08);
+}
+
+h1{
+    margin-bottom:20px;
+}
+
+.controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:15px;
+    margin-bottom:20px;
+    align-items:flex-end;
+}
+
+.control-group{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+input,
+select,
+button{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    font-size:14px;
+}
+
+button{
+    background:#2563eb;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1d4ed8;
+}
+
+.timeline-wrapper{
+    width:100%;
+    height:1050px;
+    overflow:auto;
+    border:1px solid #ccc;
+    border-radius:8px;
+    background:white;
+    position:relative;
+}
+
+.timeline{
+    display:grid;
+    min-width:max-content;
+}
+
+.header-cell{
+    position:sticky;
+    top:0;
+    z-index:100;
+    background:#111827;
+    color:white;
+    padding:10px;
+    border-right:1px solid #374151;
+    border-bottom:1px solid #374151;
+    text-align:center;
+    font-size:13px;
+    height:50px;
+}
+
+.corner-header{
+    left:0;
+    z-index:200 !important;
+}
+
+.task-name{
+    position:sticky;
+    left:0;
+    z-index:90;
+    background:#f9fafb;
+    border-right:1px solid #ddd;
+    border-bottom:1px solid #eee;
+    padding:10px;
+    font-weight:bold;
+    min-width:250px;
+    max-width:250px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    height:50px;
+    display:flex;
+    align-items:center;
+}
+
+.timeline-row{
+    position:relative;
+    height:50px;
+    border-bottom:1px solid #eee;
+
+    background-image:
+        linear-gradient(to right,#eee 1px,transparent 1px);
+
+    background-repeat:repeat-x;
+}
+
+.bar{
+    position:absolute;
+    top:10px;
+    height:30px;
+    border-radius:8px;
+    color:white;
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    padding:0 10px;
+    overflow:hidden;
+    white-space:nowrap;
+    box-shadow:0 2px 5px rgba(0,0,0,0.2);
+}
+
+.info{
+    margin-top:15px;
+    background:#eef4ff;
+    border-left:4px solid #2563eb;
+    padding:12px;
+    border-radius:4px;
+}
+
+@media(max-width:768px){
+
+    .task-name{
+        min-width:180px;
+        max-width:180px;
     }
 
-    body {
-        background: #f4f6f9;
-        padding: 20px;
-        color: #222;
-    }
+}
 
-    .container {
-        max-width: 100%;
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-
-    h1 {
-        margin-bottom: 20px;
-        font-size: 28px;
-    }
-
-    .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    .control-group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    input, select, button {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        font-size: 14px;
-    }
-
-    button {
-        cursor: pointer;
-        background: #2563eb;
-        color: white;
-        border: none;
-        transition: 0.2s;
-    }
-
-    button:hover {
-        background: #1d4ed8;
-    }
-
-    .timeline-wrapper {
-        overflow-x: auto;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background: white;
-    }
-
-    .timeline {
-        display: grid;
-        min-width: max-content;
-    }
-
-    .header-cell {
-        position: sticky;
-        top: 0;
-        background: #111827;
-        color: white;
-        padding: 10px;
-        border-right: 1px solid #374151;
-        border-bottom: 1px solid #374151;
-        font-size: 13px;
-        text-align: center;
-        z-index: 5;
-    }
-
-    .task-name {
-        position: sticky;
-        left: 0;
-        background: #f9fafb;
-        border-right: 1px solid #ddd;
-        border-bottom: 1px solid #eee;
-        padding: 10px;
-        font-weight: bold;
-        min-width: 250px;
-        max-width: 250px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        z-index: 4;
-    }
-
-    .grid-cell {
-        width: 50px;
-        height: 45px;
-        border-right: 1px solid #eee;
-        border-bottom: 1px solid #eee;
-        position: relative;
-        background: white;
-    }
-
-    .bar {
-        position: absolute;
-        top: 8px;
-        height: 28px;
-        border-radius: 6px;
-        color: white;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        white-space: nowrap;
-        padding: 0 8px;
-        font-weight: bold;
-    }
-
-    .legend {
-        margin-top: 20px;
-        font-size: 13px;
-        color: #666;
-    }
-
-    .sample-info {
-        margin-top: 10px;
-        padding: 12px;
-        background: #eef4ff;
-        border-left: 4px solid #2563eb;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-
-    @media (max-width: 768px) {
-        .task-name {
-            min-width: 180px;
-            max-width: 180px;
-        }
-
-        .grid-cell {
-            width: 40px;
-        }
-    }
 </style>
 </head>
+
 <body>
 
 <div class="container">
+
     <h1>Excel Gantt Timeline Viewer</h1>
 
     <div class="controls">
+
         <div class="control-group">
-            <label>Select Excel File</label>
-            <input type="file" id="excelFile" accept=".xlsx,.xls" />
+            <label>Select Excel</label>
+            <input type="file" id="excelFile" accept=".xlsx,.xls">
         </div>
 
         <div class="control-group">
-            <label>Timeline Start Date</label>
-            <input type="date" id="timelineStart" />
+            <label>Timeline Start</label>
+            <input type="date" id="timelineStart">
         </div>
 
         <div class="control-group">
@@ -187,14 +196,21 @@
         </div>
 
         <div class="control-group">
-            <label>&nbsp;</label>
+            <label>Visible Rows</label>
+            <input type="number" id="visibleRows" value="20" min="5" max="100">
+        </div>
+
+        <div class="control-group">
             <button id="renderBtn">Generate Timeline</button>
         </div>
+
     </div>
 
-    <div class="sample-info">
-        Expected Excel Columns:<br>
-        <strong>Task Title</strong>, <strong>Start Date</strong>, <strong>Due Date</strong>
+    <div class="info">
+        Expected Excel Columns:
+        <strong>Task Title</strong>,
+        <strong>Start Date</strong>,
+        <strong>Due Date</strong>
     </div>
 
     <br>
@@ -203,190 +219,305 @@
         <div id="timeline" class="timeline"></div>
     </div>
 
-    <div class="legend">
-        Upload Excel → Select Timeline Start Date → Select Interval → Generate Timeline
-    </div>
 </div>
 
 <script>
+
 let tasks = [];
 
 const colors = [
-    '#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c',
-    '#0891b2', '#be123c', '#4f46e5', '#0f766e', '#65a30d'
+    '#2563eb',
+    '#16a34a',
+    '#dc2626',
+    '#9333ea',
+    '#ea580c',
+    '#0891b2',
+    '#be123c',
+    '#4f46e5',
+    '#0f766e',
+    '#65a30d'
 ];
 
-function randomColor(index) {
+function randomColor(index){
     return colors[index % colors.length];
 }
 
-function parseExcel(file) {
-    return new Promise((resolve, reject) => {
+function parseExcel(file){
+
+    return new Promise((resolve,reject)=>{
+
         const reader = new FileReader();
 
-        reader.onload = function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+        reader.onload = function(e){
 
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(firstSheet, { raw: false });
+            try{
+
+                const data = new Uint8Array(e.target.result);
+
+                const workbook = XLSX.read(data,{
+                    type:'array'
+                });
+
+                const sheet =
+                    workbook.Sheets[
+                        workbook.SheetNames[0]
+                    ];
+
+                const json =
+                    XLSX.utils.sheet_to_json(sheet,{
+                        raw:false
+                    });
 
                 resolve(json);
-            } catch (err) {
+
+            }catch(err){
                 reject(err);
             }
+
         };
 
         reader.readAsArrayBuffer(file);
+
     });
+
 }
 
-function normalizeTasks(rows) {
-    return rows.map((row, index) => {
-        const taskName = row['Task Title'] || row['Activity'] || row['Task'] || `Task ${index+1}`;
+function normalizeTasks(rows){
 
-        const start = new Date(row['Start Date'] || row['Activity Start Date'] || row['Start']);
-        const end = new Date(row['Due Date'] || row['End Date'] || row['Activity End Date'] || row['End']);
+    return rows.map((row,index)=>{
 
-        return {
-            name: taskName,
+        const name =
+            row['Task Title']
+            || row['Task']
+            || row['Activity']
+            || `Task ${index+1}`;
+
+        const start =
+            new Date(
+                row['Start Date']
+                || row['Start']
+                || row['Activity Start Date']
+            );
+
+        const end =
+            new Date(
+                row['Due Date']
+                || row['End Date']
+                || row['End']
+                || row['Activity End Date']
+            );
+
+        return{
+            name,
             start,
             end,
-            color: randomColor(index)
+            color:randomColor(index)
         };
-    }).filter(t => !isNaN(t.start) && !isNaN(t.end));
+
+    }).filter(t =>
+        !isNaN(t.start)
+        &&
+        !isNaN(t.end)
+    );
+
 }
 
-function addDays(date, days) {
+function addDays(date,days){
+
     const d = new Date(date);
-    d.setDate(d.getDate() + days);
+
+    d.setDate(d.getDate()+days);
+
     return d;
+
 }
 
-function diffDays(start, end) {
-    return Math.floor((end - start) / (1000 * 60 * 60 * 24));
+function diffDays(start,end){
+
+    return Math.floor(
+        (end-start)/(1000*60*60*24)
+    );
+
 }
 
-function formatDate(date, interval) {
-    const options = {
-        month: 'short',
-        day: 'numeric'
-    };
+function formatDate(date,interval){
 
-    if (interval === 'month') {
-        return date.toLocaleDateString(undefined, {
-            month: 'short',
-            year: 'numeric'
+    if(interval === 'month'){
+
+        return date.toLocaleDateString(undefined,{
+            month:'short',
+            year:'numeric'
         });
+
     }
 
-    return date.toLocaleDateString(undefined, options);
+    return date.toLocaleDateString(undefined,{
+        month:'short',
+        day:'numeric'
+    });
+
 }
 
-function getIntervalDays(interval) {
-    switch(interval) {
-        case 'day': return 1;
-        case 'week': return 7;
-        case '2week': return 14;
-        case 'month': return 30;
-        default: return 1;
+function getIntervalDays(interval){
+
+    switch(interval){
+
+        case 'day':
+            return 1;
+
+        case 'week':
+            return 7;
+
+        case '2week':
+            return 14;
+
+        case 'month':
+            return 30;
+
+        default:
+            return 1;
+
     }
+
 }
 
-function renderTimeline(tasks, timelineStart, interval) {
+function renderTimeline(tasks,timelineStart,interval){
 
-    const timeline = document.getElementById('timeline');
+    const timeline =
+        document.getElementById('timeline');
+
     timeline.innerHTML = '';
 
-    if (!tasks.length) {
-        alert('No valid task data found.');
+    if(!tasks.length){
+
+        alert('No valid tasks found.');
+
         return;
     }
 
-    const intervalDays = getIntervalDays(interval);
+    const visibleRows =
+        parseInt(
+            document.getElementById('visibleRows').value
+        ) || 20;
+
+    document.querySelector('.timeline-wrapper').style.height =
+        `${(visibleRows * 50) + 50}px`;
+
+    const intervalDays =
+        getIntervalDays(interval);
 
     const cellWidth = 50;
-    const rowHeight = 50;
+
     const nameWidth = 250;
 
-    let maxEnd = new Date(Math.max(...tasks.map(t => t.end)));
+    let maxEnd =
+        new Date(
+            Math.max(...tasks.map(t => t.end))
+        );
 
-    const totalDays = diffDays(timelineStart, maxEnd) + intervalDays;
-    const totalColumns = Math.ceil(totalDays / intervalDays);
+    const totalDays =
+        diffDays(timelineStart,maxEnd)
+        + intervalDays;
 
-    // Main grid
+    const totalColumns =
+        Math.ceil(totalDays / intervalDays);
+
     timeline.style.gridTemplateColumns =
         `${nameWidth}px repeat(${totalColumns}, ${cellWidth}px)`;
 
     // ===== HEADER =====
 
-    const emptyHeader = document.createElement('div');
-    emptyHeader.className = 'header-cell';
+    const emptyHeader =
+        document.createElement('div');
+
+    emptyHeader.className =
+        'header-cell corner-header';
+
     emptyHeader.innerText = 'Activity';
+
     timeline.appendChild(emptyHeader);
 
-    for (let c = 0; c < totalColumns; c++) {
+    for(let c=0;c<totalColumns;c++){
 
-        const header = document.createElement('div');
+        const header =
+            document.createElement('div');
+
         header.className = 'header-cell';
 
-        const date = addDays(
-            timelineStart,
-            c * intervalDays
-        );
+        const date =
+            addDays(
+                timelineStart,
+                c * intervalDays
+            );
 
-        header.innerText = formatDate(date, interval);
+        header.innerText =
+            formatDate(date,interval);
 
         timeline.appendChild(header);
+
     }
 
     // ===== TASK ROWS =====
 
-    tasks.forEach((task, index) => {
+    tasks.forEach((task,index)=>{
 
-        // Left task name
-        const taskName = document.createElement('div');
+        // Task name
+
+        const taskName =
+            document.createElement('div');
+
         taskName.className = 'task-name';
+
         taskName.innerText = task.name;
 
         timeline.appendChild(taskName);
 
-        // Row container
-        const row = document.createElement('div');
+        // Timeline row
 
-        row.style.position = 'relative';
-        row.style.gridColumn = `2 / span ${totalColumns}`;
-        row.style.height = `${rowHeight}px`;
-        row.style.borderBottom = '1px solid #eee';
+        const row =
+            document.createElement('div');
 
-        // Background grid
-        row.style.backgroundImage =
-            `linear-gradient(to right, #eee 1px, transparent 1px)`;
+        row.className = 'timeline-row';
 
-        row.style.backgroundSize = `${cellWidth}px ${rowHeight}px`;
+        row.style.gridColumn =
+            `2 / span ${totalColumns}`;
+
+        row.style.backgroundSize =
+            `${cellWidth}px 50px`;
 
         // Calculate bar position
+
         const startOffsetDays =
-            diffDays(timelineStart, task.start);
+            diffDays(
+                timelineStart,
+                task.start
+            );
 
         const durationDays =
-            diffDays(task.start, task.end) + 1;
+            diffDays(
+                task.start,
+                task.end
+            ) + 1;
 
         const left =
-            (startOffsetDays / intervalDays) * cellWidth;
+            (startOffsetDays / intervalDays)
+            * cellWidth;
 
         const width =
-            (durationDays / intervalDays) * cellWidth;
+            (durationDays / intervalDays)
+            * cellWidth;
 
-        // Bar
-        const bar = document.createElement('div');
+        // Create bar
+
+        const bar =
+            document.createElement('div');
 
         bar.className = 'bar';
 
         bar.style.left = `${left}px`;
-        bar.style.top = '10px';
+
         bar.style.width = `${width}px`;
+
         bar.style.background = task.color;
 
         bar.innerText = task.name;
@@ -394,55 +525,92 @@ function renderTimeline(tasks, timelineStart, interval) {
         row.appendChild(bar);
 
         timeline.appendChild(row);
+
     });
+
 }
 
+// ===== FILE LOAD =====
 
-// Upload handler
-const fileInput = document.getElementById('excelFile');
+document
+.getElementById('excelFile')
+.addEventListener('change', async function(event){
 
-fileInput.addEventListener('change', async function(event) {
     const file = event.target.files[0];
 
-    if (!file) return;
+    if(!file) return;
 
-    try {
-        const rows = await parseExcel(file);
-        tasks = normalizeTasks(rows);
+    try{
 
-        if (tasks.length > 0) {
-            const earliest = new Date(Math.min(...tasks.map(t => t.start)));
-            document.getElementById('timelineStart').value = earliest.toISOString().split('T')[0];
+        const rows =
+            await parseExcel(file);
+
+        tasks =
+            normalizeTasks(rows);
+
+        if(tasks.length){
+
+            const earliest =
+                new Date(
+                    Math.min(...tasks.map(t => t.start))
+                );
+
+            document.getElementById('timelineStart').value =
+                earliest.toISOString().split('T')[0];
+
         }
 
-        alert(`Loaded ${tasks.length} activities successfully.`);
-    } catch (err) {
+        alert(
+            `Loaded ${tasks.length} activities`
+        );
+
+    }catch(err){
+
         console.error(err);
-        alert('Error reading Excel file.');
+
+        alert('Error reading Excel.');
+
     }
+
 });
 
-// Generate timeline
-const renderBtn = document.getElementById('renderBtn');
+// ===== GENERATE =====
 
-renderBtn.addEventListener('click', () => {
-    if (!tasks.length) {
-        alert('Please upload Excel file first.');
+document
+.getElementById('renderBtn')
+.addEventListener('click',()=>{
+
+    if(!tasks.length){
+
+        alert('Upload Excel first.');
+
         return;
     }
 
-    const startDateValue = document.getElementById('timelineStart').value;
+    const startValue =
+        document.getElementById('timelineStart').value;
 
-    if (!startDateValue) {
-        alert('Please select timeline start date.');
+    if(!startValue){
+
+        alert('Select timeline start date.');
+
         return;
     }
 
-    const timelineStart = new Date(startDateValue);
-    const interval = document.getElementById('intervalType').value;
+    const timelineStart =
+        new Date(startValue);
 
-    renderTimeline(tasks, timelineStart, interval);
+    const interval =
+        document.getElementById('intervalType').value;
+
+    renderTimeline(
+        tasks,
+        timelineStart,
+        interval
+    );
+
 });
+
 </script>
 
 </body>
