@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPBasic Tools</title>
+
+    <style>
+        body{
+            font-family:Arial;
+            margin:0;
+            background:#f5f5f5;
+        }
+
+        .hero{
+            text-align:center;
+            padding:60px 20px 30px;
+            background:white;
+        }
+
+        .hero h1{
+            margin:0;
+            font-size:42px;
+        }
+
+        .hero p{
+            color:#666;
+            margin-top:15px;
+            font-size:18px;
+        }
+
+        .search-box{
+            margin-top:25px;
+        }
+
+        .search-box input{
+            width:320px;
+            max-width:90%;
+            padding:12px;
+            border:1px solid #ccc;
+            border-radius:8px;
+        }
+
+        .tools{
+            display:grid;
+            grid-template-columns:
+                repeat(auto-fit,minmax(220px,1fr));
+            gap:20px;
+            padding:40px;
+        }
+
+        .tool-card{
+            background:white;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.1);
+            cursor:pointer;
+            transition:0.2s;
+        }
+
+        .tool-card:hover{
+            transform:translateY(-3px);
+        }
+
+        .tool-card h3{
+            margin-top:0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="hero">
+
+        <h1>SPBasic Tools</h1>
+
+        <p>
+            Fast, free browser-based tools for productivity,
+            developers, security, AI and everyday work.
+        </p>
+
+        <div class="search-box">
+            <input
+                type="text"
+                placeholder="Search tools..."
+            >
+        </div>
+
+    </div>
+
+    <div class="tools">
+
+        <div class="tool-card">
+            <h3>PDF Merger</h3>
+            <p>Combine multiple PDF files instantly.</p>
+        </div>
+
+        <div class="tool-card">
+            <h3>Image Compressor</h3>
+            <p>Reduce image size with quality control.</p>
+        </div>
+
+        <div class="tool-card">
+            <h3>JSON Formatter</h3>
+            <p>Validate and beautify JSON data.</p>
+        </div>
+
+        <div class="tool-card">
+            <h3>Password Generator</h3>
+            <p>Create secure random passwords.</p>
+        </div>
+
+    </div>
+
+</body>
+</html>
