@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Modern Flow Gantt</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f3f4f6;
+    padding:20px;
+}
+
+.container{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.08);
+}
+
+h2{
+    margin-bottom:20px;
+}
+
+.controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:15px;
+    margin-bottom:20px;
+    align-items:end;
+}
+
+.control-group{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+}
+
+input,
+select,
+button{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+button{
+    background:#2563eb;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1d4ed8;
+}
+
+.timeline-wrapper{
+    overflow:auto;
+    border:1px solid #ccc;
+    border-radius:8px;
+    background:white;
+    height:1000px;
+}
+
+.timeline{
+    position:relative;
+    display:grid;
+    min-width:max-content;
+}
+
+.header-cell{
+    position:sticky;
+    top:0;
+    z-index:100;
+    background:#111827;
+    color:white;
+    border-right:1px solid #374151;
+    border-bottom:1px solid #374151;
+    padding:5px;
+    text-align:center;
+    height:30px;
+	font-size:11px;
+}
+
+.corner-header{
+    left:0;
+    z-index:200 !important;
+}
+
+.lane-label{
+    position:sticky;
+    left:0;
+    z-index:90;
+    background:#f9fafb;
+    border-right:1px solid #ddd;
+    border-bottom:1px solid #eee;
+    padding:5px;
+    height:30px;
+    display:flex;
+    align-items:center;
+    min-width:260px;
+    max-width:260px;
+    font-weight:bold;
+	font-size:11px;
+}
+
+.timeline-row{
+    position:relative;
+    height:30px;
+    border-bottom:1px solid #eee;
+
+    background-image:
+        linear-gradient(to right,#eee 1px,transparent 1px);
+
+    background-repeat:repeat-x;
+}
+
+.bar{
+    position:absolute;
+    top:10px;
+    height:20px;
+    border-radius:8px;
+    color:white;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
+    white-space:nowrap;
+    box-shadow:0 2px 5px rgba(0,0,0,0.25);
+    transition:
+        transform 0.15s,
+        opacity 0.2s,
+        box-shadow 0.2s;
+
+    user-select:none;
+}
+
+.drag-area{
+    flex:1;
+	font-size:11px;
+    height:100%;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:0 10px;
+    cursor:grab;
+}
+
+.drag-area:active{
+    cursor:grabbing;
+}
+
+.resize-left,
+.resize-right{
+    position:absolute;
+    top:0;
+    width:8px;
+    height:100%;
+    background:rgba(255,255,255,0.3);
+    z-index:5;
+}
+
+.resize-left{
+    left:0;
+    cursor:ew-resize;
+}
+
+.resize-right{
+    right:0;
+    cursor:ew-resize;
+}
+
+.task-chip{
+    font-size:10px;
+    background:rgba(255,255,255,0.2);
+    padding:2px 6px;
+    border-radius:10px;
+}
+
+.highlighted{
+    transform:scale(1.05);
+    box-shadow:0 0 15px rgba(0,0,0,0.45);
+    z-index:999;
+}
+
+.dimmed{
+    opacity:0.15;
+}
+
+.flow-badge{
+    background:#111827;
+    color:white;
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:10px;
+}
+
+.task-label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    width:100%;
+    overflow:hidden;
+    white-space:nowrap;
+}
+
+.task-id{
+    font-weight:bold;
+    color:#2563eb;
+    flex-shrink:0;
+}
+
+.task-name{
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Flow-Based Interactive Dependency Visualization</h2>
+
+<div class="controls">
+
+    <div class="control-group">
+        <label>Excel File</label>
+        <input type="file" id="excelFile" accept=".xlsx,.xls">
+    </div>
+
+    <div class="control-group">
+        <label>Timeline Start</label>
+        <input type="date" id="timelineStart">
+    </div>
+
+    <div class="control-group">
+        <label>Interval</label>
+        <select id="intervalType">
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="2week">2 Weeks</option>
+            <option value="month">Month</option>
+        </select>
+    </div>
+
+    <div class="control-group">
+        <label>Visible Rows</label>
+        <input type="number" id="visibleRows" value="10" style="width: 80px;">
+    </div>
+
+    <div class="control-group">
+        <button id="renderBtn">
+            Generate
+        </button>
+    </div>
+
+    <div class="control-group">
+        <button id="toggleFlowBtn">
+            Toggle Flow Mode
+        </button>
+    </div>
+
+	<div class="control-group">
+
+		<label>
+			<input
+				type="checkbox"
+				id="stickyHighlight"
+			>
+			Sticky Highlight
+		</label>
+
+	</div>
+
+	<div class="control-group">
+
+		<label>
+			<input
+				type="checkbox"
+				id="focusOnly"
+			>
+			Focus Only
+		</label>
+
+	</div>
+
+</div>
+
+<div class="timeline-wrapper">
+
+    <div id="timeline" class="timeline"></div>
+
+</div>
+
+</div>
+
+<script>
+
+
+let stickyHighlightMode = false;
+
+let focusOnlyMode = false;
+
+let lockedTaskId = null;
+
+let focusedChainTasks = null;
+
+
+let tasks = [];
+
+let flowMode = true;
+
+const taskBars = {};
+
+const taskMap = {};
+
+const dependencyMap = {};
+
+const reverseMap = {};
+
+const renderedTasks = new Set();
+
+const colors = [
+    '#2563eb',
+    '#16a34a',
+    '#dc2626',
+    '#9333ea',
+    '#ea580c',
+    '#0891b2',
+    '#be123c'
+];
+
+function randomColor(index){
+
+    return colors[index % colors.length];
+
+}
+
+function parseDependencies(depString){
+
+    if(!depString) return [];
+
+    return depString
+    .split(',')
+    .map(d => d.trim())
+    .map(d => {
+
+        const match =
+            d.match(
+                /(\d+)(FS|SS|FF|SF)(\+\d+d)?/
+            );
+
+        if(!match) return null;
+
+        return{
+
+            predecessor:
+                parseInt(match[1]),
+
+            type:
+                match[2],
+
+            lag:
+                match[3]
+                ?
+                parseInt(
+                    match[3]
+                    .replace('+','')
+                    .replace('d','')
+                )
+                :
+                0
+
+        };
+
+    })
+    .filter(Boolean);
+
+}
+
+function parseExcel(file){
+
+    return new Promise((resolve,reject)=>{
+
+        const reader = new FileReader();
+
+        reader.onload = function(e){
+
+            try{
+
+                const data =
+                    new Uint8Array(e.target.result);
+
+                const workbook =
+                    XLSX.read(data,{
+                        type:'array',
+                        cellDates:true
+                    });
+
+                const sheet =
+                    workbook.Sheets[
+                        workbook.SheetNames[0]
+                    ];
+
+                const json =
+                    XLSX.utils.sheet_to_json(sheet,{
+                        raw:true
+                    });
+
+                resolve(json);
+
+            }catch(err){
+
+                reject(err);
+
+            }
+
+        };
+
+        reader.readAsArrayBuffer(file);
+
+    });
+
+}
+
+function parseInputDate(value){
+
+    const parts =
+        value.split('-');
+
+    return new Date(
+        parseInt(parts[0]),
+        parseInt(parts[1]) - 1,
+        parseInt(parts[2])
+    );
+
+}
+
+function excelDateToLocal(value){
+
+    // already JS date from SheetJS
+
+    if(value instanceof Date){
+
+        return new Date(
+            value.getFullYear(),
+            value.getMonth(),
+            value.getDate()
+        );
+
+    }
+
+    // Excel serial number
+
+    if(typeof value === 'number'){
+
+        const excelEpoch =
+            new Date(1899,11,30);
+
+        return new Date(
+            excelEpoch.getTime()
+            +
+            value * 86400000
+        );
+
+    }
+
+    // fallback string parsing
+
+    return new Date(value);
+
+}
+
+
+function normalizeTasks(rows){
+
+    Object.keys(taskMap)
+	.forEach(k => delete taskMap[k]);
+
+    return rows.map((row,index)=>{
+        const task = {
+
+            id:
+                parseInt(row['ID'] || index+1),
+
+            name:
+                row['Task Title']
+                || row['Task']
+                || `Task ${index+1}`,
+
+            start:
+                excelDateToLocal(row['Start Date']),
+
+            end:
+				excelDateToLocal(row['Due Date']),
+				
+            dependency:
+                row['Dependency'] || '',
+
+            dependencies:
+                parseDependencies(
+                    row['Dependency']
+                ),
+
+            color:
+                randomColor(index)
+
+        };
+
+        taskMap[task.id] = task;
+
+        return task;
+
+    }).filter(t =>
+        !isNaN(t.start)
+        &&
+        !isNaN(t.end)
+    );
+
+}
+
+function buildMaps(){
+
+    Object.keys(dependencyMap)
+    .forEach(k => delete dependencyMap[k]);
+
+    Object.keys(reverseMap)
+    .forEach(k => delete reverseMap[k]);
+
+    tasks.forEach(task=>{
+
+        dependencyMap[task.id] = [];
+
+        task.dependencies.forEach(dep=>{
+
+            dependencyMap[task.id]
+            .push(dep.predecessor);
+
+            if(!reverseMap[dep.predecessor]){
+
+                reverseMap[dep.predecessor] = [];
+
+            }
+
+            reverseMap[
+                dep.predecessor
+            ].push({
+
+                taskId:task.id,
+                type:dep.type
+            });
+
+        });
+
+    });
+
+}
+
+function getIntervalDays(interval){
+
+    switch(interval){
+
+        case 'week': return 7;
+        case '2week': return 14;
+        case 'month': return 30;
+        default: return 1;
+
+    }
+
+}
+
+function diffDays(start,end){
+
+    return Math.floor(
+        (end-start)/(1000*60*60*24)
+    );
+
+}
+
+function addDays(date,days){
+
+    const d = new Date(date);
+
+    d.setDate(d.getDate()+days);
+
+    return d;
+
+}
+
+function formatDate(date,interval){
+
+    if(interval === 'month'){
+
+        return date.toLocaleDateString(undefined,{
+            month:'short',
+            year:'numeric'
+        });
+
+    }
+
+    return date.toLocaleDateString(undefined,{
+        month:'short',
+        day:'numeric'
+    });
+
+}
+
+function getFullChain(taskId){
+
+    const visited = new Set();
+
+    function walk(id){
+
+        if(visited.has(id)) return;
+
+        visited.add(id);
+
+        const preds =
+            dependencyMap[id] || [];
+
+        preds.forEach(p => walk(p));
+
+        const succs =
+            reverseMap[id] || [];
+
+        succs.forEach(s => walk(s.taskId));
+
+    }
+
+    walk(taskId);
+
+    return [...visited];
+
+}
+
+function clearHighlight(){
+
+    focusedChainTasks = null;
+
+    Object.values(taskBars)
+    .forEach(bar=>{
+
+        bar.classList.remove(
+            'highlighted',
+            'dimmed'
+        );
+
+    });
+
+}
+
+
+function highlightChain(taskId){
+
+    clearHighlight();
+
+    const chain =
+        getFullChain(taskId);
+
+    focusedChainTasks = chain;
+
+    Object.entries(taskBars)
+    .forEach(([id,bar])=>{
+
+        const taskIdNum =
+            parseInt(id);
+
+        if(chain.includes(taskIdNum)){
+
+            bar.classList.add(
+                'highlighted'
+            );
+
+        }else{
+
+            if(!focusOnlyMode){
+
+                bar.classList.add(
+                    'dimmed'
+                );
+
+            }
+
+        }
+
+    });
+
+    // IMPORTANT:
+    // rerender compact view
+
+    if(focusOnlyMode){
+
+        const start =
+            parseInputDate(
+				document.getElementById(
+					'timelineStart'
+				).value
+			);
+
+        const interval =
+            document.getElementById(
+                'intervalType'
+            ).value;
+
+        renderTimeline(
+            tasks,
+            start,
+            interval
+        );
+
+    }
+
+}
+
+
+function getSingleFSSuccessor(task){
+
+    const successors =
+        reverseMap[task.id] || [];
+
+    const fs =
+        successors.filter(
+            s => s.type === 'FS'
+        );
+
+    if(fs.length !== 1){
+
+        return null;
+
+    }
+
+    return taskMap[fs[0].taskId];
+
+}
+
+function buildFlowLanes(){
+
+    renderedTasks.clear();
+
+    const lanes = [];
+
+    // TASKS THAT START A FLOW LANE
+
+    const laneStarters =
+        tasks.filter(task => {
+
+            // no dependency
+            if(task.dependencies.length === 0)
+                return true;
+
+            // ANY non-FS dependency
+            return task.dependencies.some(
+                d => d.type !== 'FS'
+            );
+
+        });
+
+    laneStarters.forEach(starter => {
+
+        if(renderedTasks.has(starter.id))
+            return;
+
+        const lane = [];
+
+        let current = starter;
+
+        while(current){
+
+            if(renderedTasks.has(current.id))
+                break;
+
+            lane.push(current);
+
+            renderedTasks.add(current.id);
+
+            // find PURE FS continuation
+
+            const successors =
+                reverseMap[current.id] || [];
+
+            const fsSuccessors =
+                successors.filter(
+                    s => s.type === 'FS'
+                );
+
+            // continue ONLY if exactly one FS child
+
+            if(fsSuccessors.length !== 1)
+                break;
+
+            const next =
+                taskMap[
+                    fsSuccessors[0].taskId
+                ];
+
+            // prevent collision:
+            // if next has multiple predecessors
+            // it should begin another lane
+
+            if(next.dependencies.length > 1)
+                break;
+
+            current = next;
+
+        }
+
+        lanes.push(lane);
+
+    });
+
+    // remaining orphan tasks
+
+    tasks.forEach(task => {
+
+        if(renderedTasks.has(task.id))
+            return;
+
+        lanes.push([task]);
+
+        renderedTasks.add(task.id);
+
+    });
+
+    return lanes;
+
+}
+
+
+function renderTimeline(tasks,timelineStart,interval){
+
+    const timeline =
+        document.getElementById('timeline');
+
+    timeline.innerHTML = '';
+
+    Object.keys(taskBars)
+    .forEach(k => delete taskBars[k]);
+
+    const intervalDays =
+        getIntervalDays(interval);
+
+    const cellWidth = 50;
+
+    const rowHeight = 60;
+
+    const labelWidth = 260;
+
+    const visibleRows =
+        parseInt(
+            document.getElementById(
+                'visibleRows'
+            ).value
+        ) || 10;
+
+    document.querySelector(
+        '.timeline-wrapper'
+    ).style.height =
+        `${(visibleRows * rowHeight)+60}px`;
+
+    const maxEnd =
+        new Date(
+            Math.max(
+                ...tasks.map(t => t.end)
+            )
+        );
+
+    const totalDays =
+        diffDays(
+            timelineStart,
+            maxEnd
+        ) + intervalDays;
+
+    const totalColumns =
+        Math.ceil(
+            totalDays / intervalDays
+        );
+
+    timeline.style.gridTemplateColumns =
+        `${labelWidth}px repeat(${totalColumns}, ${cellWidth}px)`;
+
+    // HEADER
+
+    const corner =
+        document.createElement('div');
+
+    corner.className =
+        'header-cell corner-header';
+
+    corner.innerText =
+        flowMode
+        ?
+        'Flow Lane'
+        :
+        'Task';
+
+    timeline.appendChild(corner);
+
+    for(let c=0;c<totalColumns;c++){
+
+        const h =
+            document.createElement('div');
+
+        h.className =
+            'header-cell';
+
+        h.innerText =
+            formatDate(
+                addDays(
+                    timelineStart,
+                    c * intervalDays
+                ),
+                interval
+            );
+
+        timeline.appendChild(h);
+
+    }
+
+    const lanes =
+        flowMode
+        ?
+        buildFlowLanes()
+        :
+        tasks.map(t => [t]);
+
+		let visibleLanes = lanes;
+
+		if(focusOnlyMode && focusedChainTasks){
+
+			visibleLanes =
+				lanes.filter(lane =>
+
+					lane.some(task =>
+
+						focusedChainTasks.includes(
+							task.id
+						)
+
+					)
+
+				);
+
+		}
+
+		visibleLanes.forEach((lane,index)=>{
+
+        const label =
+            document.createElement('div');
+
+        label.className =
+            'lane-label';
+
+		if(flowMode){
+
+			label.innerHTML =
+				`
+				<span class="flow-badge">
+					FLOW ${index+1}
+				</span>
+				`;
+
+		}else{
+
+			label.innerHTML =
+				`
+				<div class="task-label">
+					<div class="task-id">
+						${lane[0].id}
+					</div>
+
+					<div class="task-name">
+						${lane[0].name}
+					</div>
+				</div>
+				`;
+
+		}
+
+        timeline.appendChild(label);
+
+        const row =
+            document.createElement('div');
+
+        row.className =
+            'timeline-row';
+
+        row.style.gridColumn =
+            `2 / span ${totalColumns}`;
+
+        row.style.backgroundSize =
+            `${cellWidth}px ${rowHeight}px`;
+
+        lane.forEach(task=>{
+
+            const startOffset =
+                diffDays(
+                    timelineStart,
+                    task.start
+                );
+
+            const duration =
+                diffDays(
+                    task.start,
+                    task.end
+                ) + 1;
+
+            const left =
+                (startOffset / intervalDays)
+                * cellWidth;
+
+            const width =
+                (duration / intervalDays)
+                * cellWidth;
+
+            const bar =
+                document.createElement('div');
+
+            bar.className =
+                'bar';
+
+            bar.style.left =
+                `${left}px`;
+
+            bar.style.width =
+                `${width}px`;
+
+            bar.style.background =
+                task.color;
+
+            const leftHandle =
+                document.createElement('div');
+
+            leftHandle.className =
+                'resize-left';
+
+            const dragArea =
+                document.createElement('div');
+
+            dragArea.className =
+                'drag-area';
+
+            dragArea.innerHTML =
+                `
+                <span>
+                    ${task.id} - ${task.name}
+                </span>
+                `;
+
+            if(task.dependency){
+
+                const chip =
+                    document.createElement('span');
+
+                chip.className =
+                    'task-chip';
+
+                chip.innerText =
+                    task.dependency;
+
+                dragArea.appendChild(chip);
+
+            }
+
+            const rightHandle =
+                document.createElement('div');
+
+            rightHandle.className =
+                'resize-right';
+
+            bar.appendChild(leftHandle);
+            bar.appendChild(dragArea);
+            bar.appendChild(rightHandle);
+
+            taskBars[task.id] = bar;
+
+            // HOVER
+
+			bar.addEventListener(
+				'mouseenter',
+				()=>{
+
+					if(lockedTaskId !== null)
+						return;
+
+					highlightChain(task.id);
+
+				}
+			);
+
+			bar.addEventListener(
+				'mouseleave',
+				()=>{
+
+					if(lockedTaskId !== null)
+						return;
+
+					clearHighlight();
+
+				}
+			);
+
+			bar.addEventListener(
+				'click',
+				()=>{
+
+					if(!stickyHighlightMode)
+						return;
+
+					// unlock
+
+					if(lockedTaskId === task.id){
+
+						lockedTaskId = null;
+
+						clearHighlight();
+
+						return;
+
+					}
+
+					lockedTaskId = task.id;
+
+					highlightChain(task.id);
+
+				}
+			);
+
+			
+            // DRAG MOVE
+
+            makeInteractive(
+                bar,
+                leftHandle,
+                rightHandle,
+                task,
+                intervalDays,
+                cellWidth,
+                timelineStart
+            );
+
+            row.appendChild(bar);
+
+        });
+
+        timeline.appendChild(row);
+
+    });
+
+}
+
+function makeInteractive(
+    bar,
+    leftHandle,
+    rightHandle,
+    task,
+    intervalDays,
+    cellWidth,
+    timelineStart
+){
+
+    let mode = null;
+
+    let startX = 0;
+
+    let initialLeft = 0;
+
+    let initialWidth = 0;
+
+    function startDrag(e,newMode){
+
+        e.preventDefault();
+
+        mode = newMode;
+
+        startX = e.clientX;
+
+        initialLeft =
+            parseInt(bar.style.left);
+
+        initialWidth =
+            parseInt(bar.style.width);
+
+        document.addEventListener(
+            'mousemove',
+            onMove
+        );
+
+        document.addEventListener(
+            'mouseup',
+            stopMove
+        );
+
+    }
+
+    function onMove(e){
+
+        const dx =
+            e.clientX - startX;
+
+        let newLeft =
+            initialLeft;
+
+        let newWidth =
+            initialWidth;
+
+        if(mode === 'move'){
+
+            newLeft =
+                initialLeft + dx;
+
+        }
+
+        if(mode === 'resize-left'){
+
+            newLeft =
+                initialLeft + dx;
+
+            newWidth =
+                initialWidth - dx;
+
+        }
+
+        if(mode === 'resize-right'){
+
+            newWidth =
+                initialWidth + dx;
+
+        }
+
+        newLeft =
+            Math.round(
+                newLeft / cellWidth
+            ) * cellWidth;
+
+        newWidth =
+            Math.max(
+                cellWidth,
+                Math.round(
+                    newWidth / cellWidth
+                ) * cellWidth
+            );
+
+        if(newLeft < 0){
+
+            newLeft = 0;
+
+        }
+
+        bar.style.left =
+            `${newLeft}px`;
+
+        bar.style.width =
+            `${newWidth}px`;
+
+        const startIntervals =
+            Math.round(
+                newLeft / cellWidth
+            );
+
+        const durationIntervals =
+            Math.round(
+                newWidth / cellWidth
+            );
+
+        task.start =
+            addDays(
+                timelineStart,
+                startIntervals * intervalDays
+            );
+
+        task.end =
+            addDays(
+                task.start,
+                (durationIntervals * intervalDays)-1
+            );
+
+    }
+
+    function stopMove(){
+
+        document.removeEventListener(
+            'mousemove',
+            onMove
+        );
+
+        document.removeEventListener(
+            'mouseup',
+            stopMove
+        );
+
+    }
+
+    bar.querySelector('.drag-area')
+    .addEventListener(
+        'mousedown',
+        e => startDrag(e,'move')
+    );
+
+    leftHandle.addEventListener(
+        'mousedown',
+        e => startDrag(e,'resize-left')
+    );
+
+    rightHandle.addEventListener(
+        'mousedown',
+        e => startDrag(e,'resize-right')
+    );
+
+}
+
+document
+.getElementById('toggleFlowBtn')
+.addEventListener(
+    'click',
+    ()=>{
+
+        flowMode = !flowMode;
+
+        const start =
+            parseInputDate(
+				document.getElementById(
+					'timelineStart'
+				).value
+			);
+			
+        const interval =
+            document.getElementById(
+                'intervalType'
+            ).value;
+
+        renderTimeline(
+            tasks,
+            start,
+            interval
+        );
+
+    }
+);
+
+document
+.getElementById('excelFile')
+.addEventListener(
+    'change',
+    async function(e){
+
+        const file =
+            e.target.files[0];
+
+        if(!file) return;
+
+        const rows =
+            await parseExcel(file);
+
+        tasks =
+            normalizeTasks(rows);
+
+        buildMaps();
+
+        const earliest =
+            new Date(
+                Math.min(
+                    ...tasks.map(t => t.start)
+                )
+            );
+
+        document.getElementById(
+            'timelineStart'
+        ).value =
+            earliest.toISOString()
+            .split('T')[0];
+
+    }
+);
+
+document
+.getElementById('renderBtn')
+.addEventListener(
+    'click',
+    ()=>{
+
+        const start =
+            parseInputDate(
+				document.getElementById(
+					'timelineStart'
+				).value
+			);
+
+        const interval =
+            document.getElementById(
+                'intervalType'
+            ).value;
+
+        renderTimeline(
+            tasks,
+            start,
+            interval
+        );
+
+    }
+);
+
+
+document
+.getElementById('stickyHighlight')
+.addEventListener(
+    'change',
+    function(){
+
+        stickyHighlightMode =
+            this.checked;
+
+        if(!stickyHighlightMode){
+
+            lockedTaskId = null;
+
+            clearHighlight();
+
+        }
+
+    }
+);
+
+document
+.getElementById('focusOnly')
+.addEventListener(
+    'change',
+    function(){
+
+        focusOnlyMode =
+            this.checked;
+
+        if(lockedTaskId !== null){
+
+            highlightChain(
+                lockedTaskId
+            );
+
+        }
+
+    }
+);
+
+</script>
+
+</body>
+</html>
