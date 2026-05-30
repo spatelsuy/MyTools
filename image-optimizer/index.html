@@ -217,6 +217,7 @@
   </div>
 </body>
    <script>
+    let compressionTimeout = null;
     const securityToggle = document.getElementById('securityToggle');
     const privacyPanel = document.getElementById('privacyPanel');
     const dropZone = document.getElementById('dropZone');
@@ -404,9 +405,19 @@
 
     downloadBtn.addEventListener('click', saveFileAs);
     formatSelect.addEventListener('change', processImage);
-    qualitySlider.addEventListener('input', (e) => {
-      qualityValue.textContent = e.target.value;
-      processImage();
-    });
+	  qualitySlider.addEventListener('input', (e) => {
+	    // 1. Instantly update the percentage text so the slider feels fast and responsive
+	    qualityValue.textContent = e.target.value;
+	  
+	    // 2. Clear any pending compression calculations immediately
+	    clearTimeout(compressionTimeout);
+	  
+	    // 3. Wait 150 milliseconds after the finger stops moving before processing the image
+	    compressionTimeout = setTimeout(() => {
+		    processImage();
+	    }, 150); 
+	});
+
+     
   </script> 
 </html>
