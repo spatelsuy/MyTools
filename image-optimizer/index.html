@@ -215,9 +215,9 @@
     <button id="downloadBtn" class="download-btn">Save Image As...</button>
     <div id="previewContainer"></div>
   </div>
-</body>
-   <script>
-    let compressionTimeout = null;
+
+  <script>
+  let compressionTimeout = null;
     const securityToggle = document.getElementById('securityToggle');
     const privacyPanel = document.getElementById('privacyPanel');
     const dropZone = document.getElementById('dropZone');
@@ -331,45 +331,77 @@
       });
     }
 
-    async function processImage() {
-      if (!currentFile) return;
+async function processImage() {
+  if (!currentFile) return;
 
-      originalSizeText.textContent = formatSize(currentFile.size);
-      compressedSizeText.textContent = 'Processing...';
-      previewContainer.innerHTML = '';
-      downloadBtn.style.display = 'none';
+  originalSizeText.textContent = formatSize(currentFile.size);
+  compressedSizeText.textContent = 'Processing...';
+  downloadBtn.style.display = 'none';
 
-      try {
-        const qualityDecimal = parseInt(qualitySlider.value) / 100;
-        let outputMimeType = currentFile.type;
-        
-        if (formatSelect.value !== 'original') {
-          outputMimeType = formatSelect.value;
-        }
-        
-        if (!outputMimeType || outputMimeType === '') {
-          if (currentFile.name.toLowerCase().endsWith('.bmp')) outputMimeType = 'image/bmp';
-          else outputMimeType = 'image/jpeg';
-        }
-
-        targetExtension = getExtension(outputMimeType);
-        processedBlob = await compressImage(currentFile, qualityDecimal, outputMimeType);
-        compressedSizeText.textContent = formatSize(processedBlob.size);
-
-        const imgUrl = URL.createObjectURL(processedBlob);
-        const img = document.createElement('img');
-        img.src = imgUrl;
-        previewContainer.appendChild(img);
-
-        if (window.showSaveFilePicker) downloadBtn.textContent = "Save Image As...";
-        else downloadBtn.textContent = "Download Image";
-        downloadBtn.style.display = 'block';
-
-      } catch (error) {
-        compressedSizeText.textContent = 'Error';
-        console.error(error);
-      }
+  try {
+    const qualityDecimal = parseInt(qualitySlider.value) / 100;
+    let outputMimeType = currentFile.type;
+    
+    if (formatSelect.value !== 'original') {
+      outputMimeType = formatSelect.value;
     }
+    
+    if (!outputMimeType || outputMimeType === '') {
+      if (currentFile.name.toLowerCase().endsWith('.bmp')) outputMimeType = 'image/bmp';
+      else outputMimeType = 'image/jpeg';
+    }
+
+    // Handle slider accessibility states for lossless formats
+    if (outputMimeType === 'image/png' || outputMimeType === 'image/bmp' || outputMimeType === 'image/gif') {
+      qualitySlider.disabled = true;
+      qualitySlider.style.opacity = "0.4";
+      qualityValue.textContent = "N/A (Lossless)";
+    } else {
+      qualitySlider.disabled = false;
+      qualitySlider.style.opacity = "1";
+      qualityValue.textContent = qualitySlider.value;
+    }
+
+    targetExtension = getExtension(outputMimeType);
+    processedBlob = await compressImage(currentFile, qualityDecimal, outputMimeType);
+    compressedSizeText.textContent = formatSize(processedBlob.size);
+
+    const imgUrl = URL.createObjectURL(processedBlob);
+    
+    // Look for an existing preview image on the page
+    let existingImg = previewContainer.querySelector('img');
+    
+    if (existingImg) {
+      // Clean up the browser memory allocated for the old image URL
+      const oldUrl = existingImg.src;
+      
+      // Update the source in-place to prevent screen flickering
+      existingImg.src = imgUrl;
+      
+      // Safely revoke the old object URL after the image switches
+      existingImg.onload = () => {
+        if (oldUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(oldUrl);
+        }
+      };
+    } else {
+      // Create the image element for the first time if it doesn't exist yet
+      const img = document.createElement('img');
+      img.src = imgUrl;
+      previewContainer.appendChild(img);
+    }
+
+    if (window.showSaveFilePicker) downloadBtn.textContent = "Save Image As...";
+    else downloadBtn.textContent = "Download Image";
+    downloadBtn.style.display = 'block';
+
+  } catch (error) {
+    compressedSizeText.textContent = 'Error';
+    console.error(error);
+  }
+}
+
+
 
     function triggerNormalDownload(suggestedName) {
       const link = document.createElement('a');
@@ -405,19 +437,29 @@
 
     downloadBtn.addEventListener('click', saveFileAs);
     formatSelect.addEventListener('change', processImage);
-	  qualitySlider.addEventListener('input', (e) => {
-	    // 1. Instantly update the percentage text so the slider feels fast and responsive
-	    qualityValue.textContent = e.target.value;
-	  
-	    // 2. Clear any pending compression calculations immediately
-	    clearTimeout(compressionTimeout);
-	  
-	    // 3. Wait 150 milliseconds after the finger stops moving before processing the image
-	    compressionTimeout = setTimeout(() => {
-		    processImage();
-	    }, 150); 
-	});
 
-     
-  </script> 
+	// Smart Split-Engine Listener for Mobile and Desktop
+	function isMobileDevice() {
+	  return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+	}
+
+	if (isMobileDevice()) {
+	  // MOBILE BEHAVIOR: Updates number instantly, but ONLY runs compression when finger lifts up
+	  qualitySlider.addEventListener('input', (e) => {
+		qualityValue.textContent = e.target.value;
+	  });
+	  
+	  qualitySlider.addEventListener('change', () => {
+		processImage(); // Fires exactly once when thumb leaves the screen
+	  });
+	} else {
+	  // DESKTOP BEHAVIOR: Continuous processing for smooth real-time tracking with a mouse
+	  qualitySlider.addEventListener('input', (e) => {
+		qualityValue.textContent = e.target.value;
+		processImage(); 
+	  });
+	}
+	
+  </script>
+</body>
 </html>
