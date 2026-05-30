@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant JavaScript GPS Locator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            width: 100%;
+            max-width: 400px;
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        h1 { font-size: 1.4rem; color: #38bdf8; font-weight: 600; }
+        .btn {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #7dd3fc; }
+        .data-display {
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid #475569;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
+        .val { font-family: monospace; font-size: 1.1rem; color: #f1f5f9; }
+        .status { font-size: 0.9rem; color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>JavaScript GPS Engine</h1>
+        <p class="status" id="statusMessage">Awaiting coordinates request...</p>
+        
+        <button class="btn" id="locateBtn">Get My Location</button>
+
+        <div class="data-display">
+            <div>
+                <div class="label">Latitude</div>
+                <div class="val" id="latOut">--.------</div>
+            </div>
+            <div>
+                <div class="label">Longitude</div>
+                <div class="val" id="lonOut">--.------</div>
+            </div>
+            <div>
+                <div class="label">Accuracy Range</div>
+                <div class="val" id="accOut">-- meters</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const locateBtn = document.getElementById('locateBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const latOut = document.getElementById('latOut');
+        const lonOut = document.getElementById('lonOut');
+        const accOut = document.getElementById('accOut');
+
+        function successCallback(position) {
+            // Extract core hardware data packets from browser object payload
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            // Output the precise numeric strings to the UI screen
+            latOut.innerText = latitude.toFixed(6);
+            lonOut.innerText = longitude.toFixed(6);
+            accOut.innerText = `${accuracy.toFixed(1)} meters`;
+            
+            statusMessage.innerText = "Location updated successfully!";
+            statusMessage.style.color = "#4ade80";
+        }
+
+        function errorCallback(error) {
+            // Handle expected browser access refusal scenarios safely
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    statusMessage.innerText = "Error: Location request denied by user.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    statusMessage.innerText = "Error: Device GPS hardware is offline.";
+                    break;
+                case error.TIMEOUT:
+                    statusMessage.innerText = "Error: Request timed out tracking signal.";
+                    break;
+                default:
+                    statusMessage.innerText = "An unknown tracking fault occurred.";
+            }
+            statusMessage.style.color = "#f87171";
+        }
+
+        locateBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                statusMessage.innerText = "Error: Geolocation not supported by browser.";
+                statusMessage.style.color = "#f87171";
+                return;
+            }
+
+            statusMessage.innerText = "Contacting satellite connections...";
+            statusMessage.style.color = "#94a3b8";
+
+            // Query browser system parameters with maximum accuracy settings
+            navigator.geolocation.getCurrentPosition(successCallback, errorCallback, {
+                enableHighAccuracy: true, // Forces phone to switch on native battery-heavy GPS chips
+                timeout: 10000,           // Wait up to 10 seconds for a lock
+                maximumAge: 0             // Do not use cached older coordinates
+            });
+        });
+    </script>
+</body>
+</html>
