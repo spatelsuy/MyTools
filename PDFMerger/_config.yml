@@ -1,6 +1,6 @@
 title: Offline PDF Merger
 description: A browser-based tool to merge PDFs securely without uploading. Combine multiple PDF files directly in your browser without uploading.
-url: https://spatelsuy.github.io/PDFMerger
+url: https://spatelsuy.github.io/MyTools/PDFMerger
 baseurl: /PDFMerger  # Critical for project sites!
 author:
   name: Sunil Patel
