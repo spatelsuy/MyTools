@@ -5,6 +5,3 @@ baseurl: /MyTools
 
 author:
   name: Sunil Patel
-
-plugins:
-  - jekyll-seo-tag
