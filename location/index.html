@@ -2,141 +2,2221 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instant JavaScript GPS Locator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #0f172a;
             color: #f8fafc;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .card {
-            width: 100%;
-            max-width: 400px;
-            background: #1e293b;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            text-align: center;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 16px;
         }
-        h1 { font-size: 1.4rem; color: #38bdf8; font-weight: 600; }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
         .btn {
-            background: #38bdf8;
-            color: #0f172a;
-            border: none;
+            flex: 1;
             padding: 12px;
+            border: none;
             border-radius: 8px;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
-            transition: background 0.2s;
+            text-align: center;
         }
-        .btn:hover { background: #7dd3fc; }
-        .data-display {
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
             background: #0f172a;
-            padding: 16px;
-            border-radius: 12px;
-            border-left: 4px solid #475569;
-            text-align: left;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
         }
-        .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
-        .val { font-family: monospace; font-size: 1.1rem; color: #f1f5f9; }
-        .status { font-size: 0.9rem; color: #94a3b8; }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>JavaScript GPS Engine</h1>
-        <p class="status" id="statusMessage">Awaiting coordinates request...</p>
-        
-        <button class="btn" id="locateBtn">Get My Location</button>
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
 
-        <div class="data-display">
-            <div>
-                <div class="label">Latitude</div>
-                <div class="val" id="latOut">--.------</div>
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
             </div>
-            <div>
-                <div class="label">Longitude</div>
-                <div class="val" id="lonOut">--.------</div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
             </div>
-            <div>
-                <div class="label">Accuracy Range</div>
-                <div class="val" id="accOut">-- meters</div>
-            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
         </div>
     </div>
 
     <script>
-        const locateBtn = document.getElementById('locateBtn');
-        const statusMessage = document.getElementById('statusMessage');
-        const latOut = document.getElementById('latOut');
-        const lonOut = document.getElementById('lonOut');
-        const accOut = document.getElementById('accOut');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
 
-        function successCallback(position) {
-            // Extract core hardware data packets from browser object payload
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
             const accuracy = position.coords.accuracy;
 
-            // Output the precise numeric strings to the UI screen
-            latOut.innerText = latitude.toFixed(6);
-            lonOut.innerText = longitude.toFixed(6);
-            accOut.innerText = `${accuracy.toFixed(1)} meters`;
-            
-            statusMessage.innerText = "Location updated successfully!";
-            statusMessage.style.color = "#4ade80";
-        }
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
 
-        function errorCallback(error) {
-            // Handle expected browser access refusal scenarios safely
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    statusMessage.innerText = "Error: Location request denied by user.";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    statusMessage.innerText = "Error: Device GPS hardware is offline.";
-                    break;
-                case error.TIMEOUT:
-                    statusMessage.innerText = "Error: Request timed out tracking signal.";
-                    break;
-                default:
-                    statusMessage.innerText = "An unknown tracking fault occurred.";
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
             }
-            statusMessage.style.color = "#f87171";
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
         }
 
-        locateBtn.addEventListener('click', () => {
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
             if (!navigator.geolocation) {
-                statusMessage.innerText = "Error: Geolocation not supported by browser.";
-                statusMessage.style.color = "#f87171";
+                alert("Your browser does not support tracking hardware.");
                 return;
             }
 
-            statusMessage.innerText = "Contacting satellite connections...";
-            statusMessage.style.color = "#94a3b8";
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
 
-            // Query browser system parameters with maximum accuracy settings
-            navigator.geolocation.getCurrentPosition(successCallback, errorCallback, {
-                enableHighAccuracy: true, // Forces phone to switch on native battery-heavy GPS chips
-                timeout: 10000,           // Wait up to 10 seconds for a lock
-                maximumAge: 0             // Do not use cached older coordinates
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
             });
         });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open Source Path Tracker</title>
+    
+    <!-- Load Leaflet.js Mapping Infrastructure (Free & Open Source Alternative to Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com" crossorigin="" />
+    <script src="https://unpkg.com" crossorigin=""></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Map container takes up most of the viewport screen space */
+        #map {
+            width: 100%;
+            flex: 1;
+            background: #1e293b;
+        }
+        
+        .dashboard {
+            background: #1e293b;
+            padding: 15px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000; /* Keeps controls floating on top of map tiles */
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-start { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .stat-box span { display: block; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .stat-box div { font-size: 1.1rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Interactive Map Viewport Layer -->
+    <div id="map"></div>
+
+    <!-- UI Operations Control Panel Overlay -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>GPS Signal Status</span>
+                <div id="statusText" style="color: #94a3b8;">Inactive</div>
+            </div>
+            <div class="stat-box">
+                <span>Coordinates Logged</span>
+                <div id="pointCount">0 points</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-start" id="startBtn">Start Tracing Path</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>Stop Tracking</button>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const pointCount = document.getElementById('pointCount');
+
+        let map = null;
+        let currentMarker = null;
+        let pathLine = null;
+        let watchId = null;
+        
+        // Array container storing sequential coordinate vectors
+        let loggedCoordinates = [];
+
+        // Initialize the Leaflet view map using a safe default starting index center
+        function initMap() {
+            // Center map roughly on global coordinates initially
+            map = L.map('map').setView([0, 0], 2);
+            
+            // Load and render open-source crowdsourced street road tiles safely
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Configure path geometry lines connecting future tracking points
+            pathLine = L.polyline([], {
+                color: '#3b82f6', // Bold neon blue trail line
+                weight: 5,
+                opacity: 0.85
+            }).addTo(map);
+        }
+
+        function trackingSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            statusText.innerText = "Active Signal";
+            statusText.style.color = "#10b981";
+
+            const newPoint = [lat, lon];
+            loggedCoordinates.push(newPoint);
+            pointCount.innerText = `${loggedCoordinates.length} data points`;
+
+            // Draw or move the visual cursor target tracking dot on your exact position
+            if (!currentMarker) {
+                currentMarker = L.circleMarker(newPoint, {
+                    radius: 8,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map);
+                
+                // Snap map view camera close into local road details upon signal connection
+                map.setView(newPoint, 17); 
+            } else {
+                currentMarker.setLatLng(newPoint);
+            }
+
+            // Append the new step point to the continuous path line array map overlay
+            pathLine.setLatLngs(loggedCoordinates);
+
+            // Automatically pan map viewport camera keeping pace centered with your movements
+            map.panTo(newPoint);
+        }
+
+        function trackingError(error) {
+            statusText.innerText = "Signal Dropped";
+            statusText.style.color = "#ef4444";
+            console.warn(`GPS Error Code (${error.code}): ${error.message}`);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Your browser does not support tracking hardware.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.innerText = "Searching Satellites...";
+            statusText.style.color = "#fbbf24";
+
+            // Establish continuous background device orientation location updates
+            watchId = navigator.geolocation.watchPosition(trackingSuccess, trackingError, {
+                enableHighAccuracy: true, // Forces device hardware to utilize true battery-driven GPS chips
+                maximumAge: 0,            // Erase old position caches to prevent line hopping errors
+                timeout: 10000            // Cycle updates up to every 10 seconds maximum
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.innerText = "Stopped";
+            statusText.style.color = "#94a3b8";
+        });
+
+        // Initialize mapping interface components automatically on page launch execution
+        initMap();
     </script>
 </body>
 </html>
