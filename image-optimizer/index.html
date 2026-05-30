@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professional Image Studio</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --success-hover: #15803d;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .container {
+      background: var(--card);
+      padding: 32px 24px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+    }
+    
+    /* Header layout with security badge placement */
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    h2 { margin: 0; font-size: 24px; font-weight: 700; }
+    
+    /* Interactive security icon button styling */
+    .security-toggle-btn {
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+    }
+    .security-toggle-btn:hover {
+      background-color: #f1f5f9;
+    }
+    
+    /* Elegant slide-down Privacy Modal Container */
+    .privacy-panel {
+      display: none;
+      text-align: left;
+      background-color: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin: 16px 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .privacy-panel h4 {
+      margin: 0 0 10px 0;
+      color: #0f172a;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .privacy-ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .privacy-ul li {
+      margin-bottom: 8px;
+      color: #334155;
+    }
+    .privacy-ul li:last-child {
+      margin-bottom: 0;
+    }
+
+    .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      padding: 32px 16px;
+      border-radius: 12px;
+      background-color: #fcfdfe;
+      cursor: pointer;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .drop-zone.drag-over { background-color: #eff6ff; border-color: var(--primary); }
+    .drop-zone p { margin: 0 0 6px 0; font-weight: 600; font-size: 16px; }
+    .drop-zone span { color: var(--text-muted); font-size: 13px; }
+    .control-group { margin-bottom: 20px; text-align: left; }
+    label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+    select {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background-color: #fff;
+    }
+    input[type="range"] { display: block; width: 100%; margin: 12px 0; accent-color: var(--primary); }
+    .dashboard {
+      display: flex;
+      justify-content: space-between;
+      background: #f1f5f9;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 24px;
+      font-size: 13px;
+    }
+    .dash-val { font-weight: 700; }
+    .download-btn {
+      display: none;
+      width: 100%;
+      background-color: var(--success);
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 16px;
+      font-weight: 600;
+    }
+    #previewContainer { margin-top: 24px; text-align: center; }
+    img { max-width: 100%; max-height: 280px; border-radius: 8px; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header with SVG Shield Lock Security Icon -->
+    <div class="header-row">
+      <h2>Optimize Image</h2>
+      <button id="securityToggle" class="security-toggle-btn" title="View Privacy Info" aria-label="View Privacy Info">
+        <svg xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <rect x="9" y="11" width="6" height="5" rx="1"></rect>
+          <path d="M12 11V9a2 2 0 0 0-4 0v2"></path>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="subtitle">Convert and shrink high resolution pictures locally.</div>
+    
+    <!-- Collapsible Security Dashboard Panel -->
+    <div id="privacyPanel" class="privacy-panel">
+      <p>
+        <svg xmlns="http://w3.org" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <text><b>Your images stay yours.</b> This tool runs completely inside your browser without using a backend server. Your files never leave your computer, making it safe, private, and 100% secure.</text>
+      </p>
+      <!-- <ul class="privacy-ul">
+        <li><strong>Zero Server Uploads:</strong> Compression is handled entirely by your browser.</li>
+        <li><strong>100% Offline Capable:</strong> Your images stay locally on your device.</li>
+        <li><strong>Complete Security:</strong> We cannot see, track, or store your photos.</li>
+      </ul> -->
+    </div>
+    
+    <div id="dropZone" class="drop-zone">
+      <p>Drag & drop image here</p>
+      <span>or tap to browse files</span>
+      <input type="file" id="imageInput" accept="image/*" style="display: none;">
+    </div>
+
+    <div class="control-group">
+      <label for="formatSelect">Output Format</label>
+      <select id="formatSelect">
+        <option value="original" id="optOriginal">Keep Original Format</option>
+        <option value="image/jpeg" id="optJpeg">Convert to JPEG (.jpg)</option>
+        <option value="image/png" id="optPng">Convert to PNG (.png)</option>
+        <option value="image/webp" id="optWebp">Convert to WebP (.webp)</option>
+        <option value="image/bmp" id="optBmp">Convert to BMP (.bmp)</option>
+        <option value="image/gif" id="optGif">Convert to GIF (.gif)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="qualitySlider">Compression Quality: <span id="qualityValue">80</span>%</label>
+      <input type="range" id="qualitySlider" min="1" max="90" value="80">
+    </div>
+    
+    <div class="dashboard">
+      <div>
+        <div style="color: var(--text-muted);">Original Size</div>
+        <div id="originalSize" class="dash-val">-</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="color: var(--text-muted);">Optimized Size</div>
+        <div id="compressedSize" class="dash-val">-</div>
+      </div>
+    </div>
+
+    <button id="downloadBtn" class="download-btn">Save Image As...</button>
+    <div id="previewContainer"></div>
+  </div>
+</body>
+   <script>
+    const securityToggle = document.getElementById('securityToggle');
+    const privacyPanel = document.getElementById('privacyPanel');
+    const dropZone = document.getElementById('dropZone');
+    const imageInput = document.getElementById('imageInput');
+    const formatSelect = document.getElementById('formatSelect');
+    const optOriginal = document.getElementById('optOriginal');
+    const qualitySlider = document.getElementById('qualitySlider');
+    const qualityValue = document.getElementById('qualityValue');
+    const originalSizeText = document.getElementById('originalSize');
+    const compressedSizeText = document.getElementById('compressedSize');
+    const previewContainer = document.getElementById('previewContainer');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const optJpeg = document.getElementById('optJpeg');
+    const optPng = document.getElementById('optPng');
+    const optWebp = document.getElementById('optWebp');
+    const optBmp = document.getElementById('optBmp');
+    const optGif = document.getElementById('optGif');
+
+    let currentFile = null;
+    let processedBlob = null;
+    let targetExtension = 'jpg';
+
+    // Interactive Privacy Panel click trigger
+    securityToggle.addEventListener('click', () => {
+      if (privacyPanel.style.display === 'block') {
+        privacyPanel.style.display = 'none';
+      } else {
+        privacyPanel.style.display = 'block';
+      }
+    });
+
+    function formatSize(bytes) {
+      if (!bytes) return '-';
+      return (bytes / 1024).toFixed(2) + ' KB';
+    }
+
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+    
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length > 0) { 
+        currentFile = e.dataTransfer.files[0]; 
+        handleNewFile();
+      }
+    });
+    
+    dropZone.addEventListener('click', () => imageInput.click());
+    
+    imageInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) { 
+        currentFile = e.target.files[0]; 
+        handleNewFile();
+      }
+    });
+
+    function getCleanFormatName(mimeType, fileName) {
+      const type = mimeType ? mimeType.toLowerCase() : '';
+      if (type === 'image/jpeg' || type === 'image/jpg') return 'JPEG';
+      if (type === 'image/png') return 'PNG';
+      if (type === 'image/webp') return 'WebP';
+      if (type === 'image/gif') return 'GIF';
+      if (type === 'image/bmp' || fileName.toLowerCase().endsWith('.bmp')) return 'BMP';
+      return 'Unknown';
+    }
+
+    function handleNewFile() {
+      optJpeg.style.display = 'block'; optPng.style.display = 'block';
+      optWebp.style.display = 'block'; optBmp.style.display = 'block'; optGif.style.display = 'block';
+
+      const formatName = getCleanFormatName(currentFile.type, currentFile.name);
+      optOriginal.textContent = 'Keep Original (' + formatName + ')';
+
+      if (formatName === 'JPEG') optJpeg.style.display = 'none';
+      else if (formatName === 'PNG') optPng.style.display = 'none';
+      else if (formatName === 'WebP') optWebp.style.display = 'none';
+      else if (formatName === 'BMP') optBmp.style.display = 'none';
+      else if (formatName === 'GIF') optGif.style.display = 'none';
+
+      formatSelect.value = 'original';
+      processImage();
+    }
+
+    function getExtension(mimeType) {
+      if (mimeType === 'image/png') return 'png';
+      if (mimeType === 'image/webp') return 'webp';
+      if (mimeType === 'image/bmp') return 'bmp';
+      if (mimeType === 'image/gif') return 'gif';
+      return 'jpg';
+    }
+
+    async function compressImage(file, quality, outputType) {
+      const imageBitmap = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+      const ctx = canvas.getContext('2d');
+      
+      if (outputType === 'image/jpeg' || outputType === 'image/bmp') {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      
+      ctx.drawImage(imageBitmap, 0, 0);
+      imageBitmap.close();
+      
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => { resolve(blob); }, outputType, quality);
+      });
+    }
+
+    async function processImage() {
+      if (!currentFile) return;
+
+      originalSizeText.textContent = formatSize(currentFile.size);
+      compressedSizeText.textContent = 'Processing...';
+      previewContainer.innerHTML = '';
+      downloadBtn.style.display = 'none';
+
+      try {
+        const qualityDecimal = parseInt(qualitySlider.value) / 100;
+        let outputMimeType = currentFile.type;
+        
+        if (formatSelect.value !== 'original') {
+          outputMimeType = formatSelect.value;
+        }
+        
+        if (!outputMimeType || outputMimeType === '') {
+          if (currentFile.name.toLowerCase().endsWith('.bmp')) outputMimeType = 'image/bmp';
+          else outputMimeType = 'image/jpeg';
+        }
+
+        targetExtension = getExtension(outputMimeType);
+        processedBlob = await compressImage(currentFile, qualityDecimal, outputMimeType);
+        compressedSizeText.textContent = formatSize(processedBlob.size);
+
+        const imgUrl = URL.createObjectURL(processedBlob);
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        previewContainer.appendChild(img);
+
+        if (window.showSaveFilePicker) downloadBtn.textContent = "Save Image As...";
+        else downloadBtn.textContent = "Download Image";
+        downloadBtn.style.display = 'block';
+
+      } catch (error) {
+        compressedSizeText.textContent = 'Error';
+        console.error(error);
+      }
+    }
+
+    function triggerNormalDownload(suggestedName) {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(processedBlob);
+      link.download = suggestedName;
+      link.click();
+    }
+
+    async function saveFileAs() {
+      if (!processedBlob) return;
+      const lastDot = currentFile.name.lastIndexOf('.');
+      const baseName = lastDot !== -1 ? currentFile.name.substring(0, lastDot) : 'image';
+      const suggestedName = baseName + '-optimized.' + targetExtension;
+
+      if (window.showSaveFilePicker) {
+        try {
+          const typeKey = processedBlob.type || 'image/jpeg';
+          const options = {
+            suggestedName: suggestedName,
+            types: [{ description: 'Image', accept: { [typeKey]: ['.' + targetExtension] } }]
+          };
+          const handle = await window.showSaveFilePicker(options);
+          const writable = await handle.createWritable();
+          await writable.write(processedBlob);
+          await writable.close();
+        } catch (err) {
+          if (err.name !== 'AbortError') triggerNormalDownload(suggestedName);
+        }
+      } else {
+        triggerNormalDownload(suggestedName);
+      }
+    }
+
+    downloadBtn.addEventListener('click', saveFileAs);
+    formatSelect.addEventListener('change', processImage);
+    qualitySlider.addEventListener('input', (e) => {
+      qualityValue.textContent = e.target.value;
+      processImage();
+    });
+  </script> 
+</html>
