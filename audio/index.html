@@ -12,7 +12,6 @@
   --text: #0f172a;
   --text-mut: #64748b;
   --blue: #2563eb;
-  --blue-h: #1d4ed8;
   --green: #10b981;
   --red: #ef4444;
 }
@@ -183,6 +182,7 @@ const compBtn = document.getElementById('compBtn');
 
 let audioCtx = null, decodedBuf = null, duration = 0;
 
+// FIXED: Visually and logically synced states
 modeToggle.addEventListener('change', () => {
   if (modeToggle.checked) {
     mTitle.innerText = "Mode: KEEP";
@@ -196,7 +196,7 @@ modeToggle.addEventListener('change', () => {
 });
 
 fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
+  const file = e.target.files;
   if (!file) return;
   uploadLabel.innerText = file.name;
   statusBar.innerText = "Decoding audio...";
@@ -243,7 +243,12 @@ compBtn.addEventListener('click', () => {
     if (s < e) inputRanges.push({ start: s, end: e });
   });
   inputRanges.sort((a, b) => a.start - b.start);
+  
   let finalKeep = [];
+  
+  // FIXED LOGIC: 
+  // checked === true -> User selected KEEP -> Keep ONLY the input ranges
+  // checked === false -> User selected DISCARD -> Keep EVERYTHING EXCEPT the input ranges
   if (modeToggle.checked) {
     finalKeep = inputRanges;
   } else {
@@ -254,6 +259,7 @@ compBtn.addEventListener('click', () => {
     });
     if (curr < duration) finalKeep.push({ start: curr, end: duration });
   }
+
   let targetF = 0;
   let segments = finalKeep.map(r => {
     const sF = Math.floor(r.start * sRate);
@@ -262,7 +268,9 @@ compBtn.addEventListener('click', () => {
     if (len > 0) targetF += len;
     return { sF, eF, len };
   }).filter(seg => seg.len > 0);
+  
   if (targetF === 0) { alert("Empty track selection."); return; }
+  
   const outBuf = audioCtx.createBuffer(chans, targetF, sRate);
   for (let ch = 0; ch < chans; ch++) {
     const src = decodedBuf.getChannelData(ch);
