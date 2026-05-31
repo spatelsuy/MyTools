@@ -3,74 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Audio Wave Engine</title>
+    <title>Enterprise Multi-Track Audio Cutter</title>
     <style>
         :root {
-            --bg-base: #fafafa;
+            --bg-base: #f8fafc;
             --bg-surface: #ffffff;
-            --border-main: #e4e4e7;
-            --text-main: #18181b;
-            --text-muted: #71717a;
+            --border-main: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
             --accent-blue: #2563eb;
             --accent-blue-hover: #1d4ed8;
-            --accent-red: #dc2626;
-            --accent-red-hover: #b91c1c;
-            --radius-main: 8px;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --radius-main: 10px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-base);
             color: var(--text-main);
             padding: 40px 20px;
             display: flex;
             justify-content: center;
-            align-items: center;
             min-height: 100vh;
         }
 
         .studio-card {
             width: 100%;
-            max-width: 520px;
+            max-width: 680px;
             background: var(--bg-surface);
             border: 1px solid var(--border-main);
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 32px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             gap: 24px;
         }
 
-        .header-block {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        h1 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            color: var(--text-main);
-        }
-
-        .subtitle {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-        }
+        .header-block h1 { font-size: 1.4rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.02em; }
+        .subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 4px; }
 
         .drop-zone {
-            border: 1px dashed var(--border-main);
-            background: #fcfcfd;
+            border: 2px dashed var(--border-main);
+            background: #f8fafc;
             border-radius: var(--radius-main);
-            padding: 40px 20px;
+            padding: 35px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -79,214 +59,336 @@
             align-items: center;
             gap: 8px;
         }
-
-        .drop-zone:hover {
-            border-color: var(--accent-blue);
-            background: #f8fafc;
-        }
-
-        .drop-icon {
-            font-size: 1.5rem;
-            color: var(--text-muted);
-        }
-
-        .drop-text {
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        #fileInput {
-            display: none;
-        }
+        .drop-zone:hover { border-color: var(--accent-blue); background: #f0fdf4; }
+        #fileInput { display: none; }
 
         .status-strip {
-            background: #f4f4f5;
+            background: #0f172a;
             border-radius: var(--radius-main);
-            padding: 12px 16px;
+            padding: 14px 16px;
             font-size: 0.85rem;
             font-family: monospace;
-            color: var(--text-muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            color: #38bdf8;
         }
 
-        .param-grid {
+        .mode-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f1f5f9;
+            padding: 12px 16px;
+            border-radius: var(--radius-main);
+        }
+        .mode-label { font-size: 0.9rem; font-weight: 600; }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 160px;
+            height: 34px;
+        }
+        .toggle-switch input { display: none; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--accent-red);
+            transition: .3s;
+            border-radius: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px; width: 75px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 20px;
+        }
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(77px); }
+
+        /* Dynamic Timeline Entry Table */
+        .timeline-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        .timeline-table th {
+            text-align: left;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-main);
+        }
+        .timeline-table td { padding: 8px 0; vertical-align: middle; }
+        
+        .time-input {
+            width: 90%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-main);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .time-input:disabled { background: #f1f5f9; cursor: not-allowed; }
+
+        .btn-action {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-add { background: #e2e8f0; color: var(--text-main); }
+        .btn-add:hover { background: #cbd5e1; }
+        .btn-del { background: #fee2e2; color: var(--accent-red); }
+        .btn-del:hover { background: #fecaca; }
+
+        .export-control-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
+            margin-top: 12px;
         }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .input-group label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 10px 14px;
+        .select-format {
+            padding: 12px;
             border: 1px solid var(--border-main);
-            background: var(--bg-surface);
-            color: var(--text-main);
             border-radius: var(--radius-main);
             font-size: 0.9rem;
-            font-family: monospace;
-            outline: none;
-            transition: border-color 0.2s;
+            background: white;
         }
 
-        .input-group input:focus {
-            border-color: var(--accent-blue);
-        }
-
-        .input-group input:disabled {
-            background: #f4f4f5;
-            cursor: not-allowed;
-        }
-
-        .action-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: var(--radius-main);
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            text-align: center;
-        }
-
-        .btn-primary {
+        .btn-compile {
             background: var(--accent-blue);
             color: white;
+            border: none;
+            border-radius: var(--radius-main);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-
-        .btn-primary:hover:not(:disabled) {
-            background: var(--accent-blue-hover);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-main);
-            border: 1px solid var(--border-main);
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: #f4f4f5;
-            border-color: #d4d4d8;
-        }
-
-        .btn:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
+        .btn-compile:hover:not(:disabled) { background: var(--accent-blue-hover); }
+        .btn-compile:disabled { opacity: 0.35; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="studio-card">
         <div class="header-block">
-            <h1>Audio Snipper</h1>
-            <p class="subtitle">Lossless offline audio cutter and track isolation utility</p>
+            <h1>Multi-Range Audio Splicer</h1>
+            <p class="subtitle">Specify multiple timestamps to isolate or discard segments seamlessly into a single file</p>
         </div>
-        
+
         <label class="drop-zone">
-            <span class="drop-icon"></span>
-            <span class="drop-text" id="uploadLabel">Choose audio track (MP3, WAV)</span>
+            <span style="font-size: 1.5rem;">🎵</span>
+            <span id="uploadLabel" class="drop-text" style="font-weight: 500;">Select Audio File (MP3, WAV)</span>
             <input type="file" id="fileInput" accept="audio/*">
         </label>
 
         <div class="status-strip" id="statusBar">
-            Status: System engine idle. Awaiting media import...
+            Ready: Awaiting track import...
         </div>
 
-        <div class="param-grid">
-            <div class="input-group">
-                <label for="startTime">Start Index (s)</label>
-                <input type="number" id="startTime" value="0.0" step="0.1" min="0" disabled>
-            </div>
-            <div class="input-group">
-                <label for="endTime">End Index (s)</label>
-                <input type="number" id="endTime" value="0.0" step="0.1" min="0" disabled>
-            </div>
+        <div class="mode-container">
+            <div class="mode-label">Operational Profile:</div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="modeToggle">
+                <span class="slider">
+                    <span style="z-index:1; margin-left:5px;">DISCARD</span>
+                    <span style="z-index:1; margin-right:8px;">KEEP</span>
+                </span>
+            </label>
         </div>
 
-        <div class="action-stack">
-            <button class="btn btn-primary" id="extractBtn" disabled>Extract Highlighted Window</button>
-            <button class="btn btn-secondary" id="removeBtn" disabled>Cut Selection & Fuse Remainder</button>
+        <div>
+            <table class="timeline-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Start Timestamp (s)</th>
+                        <th style="width: 40%;">End Timestamp (s)</th>
+                        <th style="width: 20%; text-align: right;"><button class="btn-action btn-add" id="addRangeBtn" disabled>+ Add Row</button></th>
+                    </tr>
+                </thead>
+                <tbody id="rangeTableBody">
+                    <!-- Dynamic form rows append here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="export-control-grid">
+            <select class="select-format" id="formatSelect">
+                <option value="wav">Lossless Format (.WAV)</option>
+            </select>
+            <button class="btn-compile" id="compileBtn" disabled>Process & Save Merged File</button>
         </div>
     </div>
     <script>
         const fileInput = document.getElementById('fileInput');
         const uploadLabel = document.getElementById('uploadLabel');
         const statusBar = document.getElementById('statusBar');
-        const startTimeInput = document.getElementById('startTime');
-        const endTimeInput = document.getElementById('endTime');
-        const extractBtn = document.getElementById('extractBtn');
-        const removeBtn = document.getElementById('removeBtn');
+        const modeToggle = document.getElementById('modeToggle');
+        const addRangeBtn = document.getElementById('addRangeBtn');
+        const rangeTableBody = document.getElementById('rangeTableBody');
+        const compileBtn = document.getElementById('compileBtn');
 
         let audioContext = null;
         let decodedAudioBuffer = null;
+        let trackDuration = 0;
 
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             uploadLabel.innerText = file.name;
-            statusBar.innerText = "Processing: Initializing hardware decoding pipeline...";
-            
+            statusBar.innerText = "Decoding: Reading soundwave matrices...";
+            rangeTableBody.innerHTML = ""; 
+
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const arrayBuffer = await file.arrayBuffer();
                 decodedAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                trackDuration = decodedAudioBuffer.duration;
 
-                const duration = decodedAudioBuffer.duration;
-                statusBar.innerText = `Ready: Parsed track duration is ${duration.toFixed(2)}s`;
-
-                startTimeInput.value = 0.0;
-                startTimeInput.max = duration;
-                endTimeInput.value = duration.toFixed(1);
-                endTimeInput.max = duration;
-
-                startTimeInput.disabled = false;
-                endTimeInput.disabled = false;
-                extractBtn.disabled = false;
-                removeBtn.disabled = false;
+                statusBar.innerText = `Track Loaded: Total duration is ${trackDuration.toFixed(2)} seconds.`;
+                
+                addRangeBtn.disabled = false;
+                compileBtn.disabled = false;
+                
+                // Automatically generate the initial template configuration row
+                addTimelineRow(0, Math.min(30, trackDuration));
 
             } catch (err) {
-                statusBar.innerText = "Error: Bitstream format incompatible or unreadable.";
+                statusBar.innerText = "Error: Incompatible file structure. Please try a standard track.";
                 console.error(err);
             }
         });
 
+        function addTimelineRow(startVal = 0, endVal = 10) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="number" class="time-input start-time" value="${startVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}"></td>
+                <td><input type="number" class="time-input end-time" value="${endVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}"></td>
+                <td style="text-align: right;"><button class="btn-action btn-del" onclick="this.closest('tr').remove()">Remove</button></td>
+            `;
+            rangeTableBody.appendChild(row);
+        }
+
+        addRangeBtn.addEventListener('click', () => {
+            addTimelineRow(0, Math.min(10, trackDuration));
+        });
+
+        // CORE PROCESSING PIPELINE: Math loops mapping matrix intersections
+        compileBtn.addEventListener('click', () => {
+            if (!decodedAudioBuffer) return;
+
+            statusBar.innerText = "Calculating timelines and compiling audio frames...";
+
+            const sampleRate = decodedAudioBuffer.sampleRate;
+            const channels = decodedAudioBuffer.numberOfChannels;
+            const totalFrames = decodedAudioBuffer.length;
+
+            // 1. Gather all ranges from the input fields
+            const rows = rangeTableBody.querySelectorAll('tr');
+            let inputRanges = [];
+            rows.forEach(row => {
+                const start = Math.max(0, Math.min(trackDuration, parseFloat(row.querySelector('.start-time').value) || 0));
+                const end = Math.max(0, Math.min(trackDuration, parseFloat(row.querySelector('.end-time').value) || 0));
+                if (start < end) {
+                    inputRanges.push({ start, end });
+                }
+            });
+
+            // Sort input timestamp ranges chronologically
+            inputRanges.sort((a, b) => a.start - b.start);
+
+            // 2. Compute timeline regions based on the selected mode (Keep vs Discard)
+            let finalKeepRanges = [];
+            const isKeepMode = modeToggle.checked;
+
+            if (isKeepMode) {
+                // Keep Mode: Use the user-defined ranges directly
+                finalKeepRanges = inputRanges;
+            } else {
+                // Discard Mode: Invert the ranges to keep everything *except* the user's selections
+                let currentPos = 0;
+                inputRanges.forEach(range => {
+                    if (range.start > currentPos) {
+                        finalKeepRanges.push({ start: currentPos, end: range.start });
+                    }
+                    currentPos = Math.max(currentPos, range.end);
+                });
+                if (currentPos < trackDuration) {
+                    finalKeepRanges.push({ start: currentPos, end: trackDuration });
+                }
+            }
+
+            // 3. Calculate total frames needed for the final combined track
+            let targetTotalFrames = 0;
+            let frameSegments = finalKeepRanges.map(range => {
+                const startFrame = Math.floor(range.start * sampleRate);
+                const endFrame = Math.min(totalFrames, Math.floor(range.end * sampleRate));
+                const length = endFrame - startFrame;
+                if (length > 0) targetTotalFrames += length;
+                return { startFrame, endFrame, length };
+            }).filter(seg => seg.length > 0);
+
+            if (targetTotalFrames === 0) {
+                alert("Processing failed: The calculated timeline results in an empty track.");
+                statusBar.innerText = "Error: Output track length is zero.";
+                return;
+            }
+
+            // 4. Create an empty memory container and splice the data blocks together
+            const outputBuffer = audioContext.createBuffer(channels, targetTotalFrames, sampleRate);
+
+            for (let ch = 0; ch < channels; ch++) {
+                const sourceData = decodedAudioBuffer.getChannelData(ch);
+                let writeOffset = 0;
+
+                frameSegments.forEach(seg => {
+                    const sampleSegment = sourceData.subarray(seg.startFrame, seg.endFrame);
+                    outputBuffer.copyToChannel(sampleSegment, ch, writeOffset);
+                    writeOffset += seg.length;
+                });
+            }
+
+            // 5. Convert the completed memory track into a downloadable file
+            statusBar.innerText = "Encoding: Generating high-fidelity download file...";
+            const wavBlob = bufferToWavBlob(outputBuffer);
+            
+            const url = URL.createObjectURL(wavBlob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `spliced_audio_${Date.now()}.wav`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            URL.revokeObjectURL(url);
+
+            statusBar.innerText = "Success: Clean audio file compiled and downloaded.";
+        });
+
+        // WAV File Binary Array Encoder Utility
         function bufferToWavBlob(buffer) {
             const numOfChan = buffer.numberOfChannels;
             const sampleRate = buffer.sampleRate;
-            const format = 1; // Linear PCM 16-bit format configurations
+            const format = 1; 
             const bitDepth = 16;
             
-            let result;
-            if (numOfChan === 2) {
-                result = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
-            } else {
-                result = buffer.getChannelData(0);
-            }
+            let result = numOfChan === 2 
+                ? interleave(buffer.getChannelData(0), buffer.getChannelData(1)) 
+                : buffer.getChannelData(0);
             
             const bufferLen = result.length * 2;
             const wavBuffer = new ArrayBuffer(44 + bufferLen);
@@ -307,7 +409,6 @@
             view.setUint32(40, bufferLen, true);
             
             floatTo16BitPCM(view, 44, result);
-            
             return new Blob([view], { type: 'audio/wav' });
         }
 
@@ -335,83 +436,6 @@
                 view.setUint8(offset + i, string.charCodeAt(i));
             }
         }
-
-        function executeDownload(blob, prefix) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${prefix}_${Date.now()}.wav`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
-
-        extractBtn.addEventListener('click', () => {
-            const startSec = parseFloat(startTimeInput.value);
-            const endSec = parseFloat(endTimeInput.value);
-            
-            if (startSec >= endSec) { alert("Timeline operational paradox: Start marker must precede End marker."); return; }
-
-            statusBar.innerText = "Compiling: Exporting isolated slice window bounds...";
-            
-            const sampleRate = decodedAudioBuffer.sampleRate;
-            const startFrame = Math.floor(startSec * sampleRate);
-            const endFrame = Math.floor(endSec * sampleRate);
-            const sliceFramesCount = endFrame - startFrame;
-
-            const exportBuffer = audioContext.createBuffer(
-                decodedAudioBuffer.numberOfChannels,
-                sliceFramesCount,
-                sampleRate
-            );
-
-            for (let i = 0; i < decodedAudioBuffer.numberOfChannels; i++) {
-                const channelData = decodedAudioBuffer.getChannelData(i);
-                const cutSlice = channelData.subarray(startFrame, endFrame);
-                exportBuffer.copyToChannel(cutSlice, i, 0);
-            }
-
-            const waveBlob = bufferToWavBlob(exportBuffer);
-            executeDownload(waveBlob, 'extracted_track');
-            statusBar.innerText = "Complete: Isolated snippet saved successfully.";
-        });
-
-        removeBtn.addEventListener('click', () => {
-            const startSec = parseFloat(startTimeInput.value);
-            const endSec = parseFloat(endTimeInput.value);
-
-            if (startSec >= endSec) { alert("Timeline operational paradox: Start marker must precede End marker."); return; }
-
-            statusBar.innerText = "Compiling: Splicing remainder structural regions together...";
-
-            const sampleRate = decodedAudioBuffer.sampleRate;
-            const startFrame = Math.floor(startSec * sampleRate);
-            const endFrame = Math.floor(endSec * sampleRate);
-            
-            const totalOriginalFrames = decodedAudioBuffer.length;
-            const framesToRemove = endFrame - startFrame;
-            const dynamicRemainderFrames = totalOriginalFrames - framesToRemove;
-
-            const exportBuffer = audioContext.createBuffer(
-                decodedAudioBuffer.numberOfChannels,
-                dynamicRemainderFrames,
-                sampleRate
-            );
-
-            for (let i = 0; i < decodedAudioBuffer.numberOfChannels; i++) {
-                const channelData = decodedAudioBuffer.getChannelData(i);
-                const part1 = channelData.subarray(0, startFrame);
-                const part2 = channelData.subarray(endFrame, totalOriginalFrames);
-
-                exportBuffer.copyToChannel(part1, i, 0);
-                exportBuffer.copyToChannel(part2, i, startFrame);
-            }
-
-            const waveBlob = bufferToWavBlob(exportBuffer);
-            executeDownload(waveBlob, 'merged_remainder');
-            statusBar.innerText = "Complete: Spliced audio matrix saved successfully.";
-        });
     </script>
 </body>
 </html>
