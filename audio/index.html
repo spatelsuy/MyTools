@@ -364,7 +364,7 @@
             let finalKeepRanges = [];
             const isKeepMode = modeToggle.checked;
 
-            if (isKeepMode) {
+            if (!isKeepMode) {
                 finalKeepRanges = inputRanges;
             } else {
                 let currentPos = 0;
