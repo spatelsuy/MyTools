@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Multi-Track Audio Cutter</title>
+    <title>Enterprise Multi-Track Studio Engine</title>
     <style>
         :root {
             --bg-base: #f8fafc;
@@ -61,6 +61,20 @@
         }
         .drop-zone:hover { border-color: var(--accent-blue); background: #f0fdf4; }
         #fileInput { display: none; }
+
+        /* Media Player Dashboard Layout Styles */
+        .player-panel {
+            background: #f1f5f9;
+            border-radius: var(--radius-main);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        audio {
+            width: 100%;
+            outline: none;
+        }
 
         .status-strip {
             background: #0f172a;
@@ -129,10 +143,16 @@
             padding-bottom: 8px;
             border-bottom: 1px solid var(--border-main);
         }
-        .timeline-table td { padding: 8px 0; vertical-align: middle; }
+        .timeline-table td { padding: 12px 0; vertical-align: middle; }
         
+        .time-cell-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 95%;
+        }
         .time-input {
-            width: 90%;
+            width: 100%;
             padding: 8px 12px;
             border: 1px solid var(--border-main);
             border-radius: 6px;
@@ -142,13 +162,16 @@
         .time-input:disabled { background: #f1f5f9; cursor: not-allowed; }
 
         .btn-action {
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 6px;
             font-size: 0.8rem;
             font-weight: bold;
             cursor: pointer;
             border: none;
+            white-space: nowrap;
         }
+        .btn-capture { background: #cbd5e1; color: #0f172a; }
+        .btn-capture:hover { background: #94a3b8; }
         .btn-add { background: #e2e8f0; color: var(--text-main); }
         .btn-add:hover { background: #cbd5e1; }
         .btn-del { background: #fee2e2; color: var(--accent-red); }
@@ -186,15 +209,20 @@
 
     <div class="studio-card">
         <div class="header-block">
-            <h1>Multi-Range Audio Splicer</h1>
-            <p class="subtitle">Specify multiple timestamps to isolate or discard segments seamlessly into a single file</p>
+            <h1>Multi-Range Audio Studio</h1>
+            <p class="subtitle">Listen to your track and capture real-time player timestamps to compile custom cuts</p>
         </div>
 
         <label class="drop-zone">
-            <span style="font-size: 1.5rem;">🎵</span>
+            <span style="font-size: 1.5rem;">📁</span>
             <span id="uploadLabel" class="drop-text" style="font-weight: 500;">Select Audio File (MP3, WAV)</span>
             <input type="file" id="fileInput" accept="audio/*">
         </label>
+
+        <!-- Dynamic Embedded Hardware Player Module -->
+        <div class="player-panel">
+            <audio id="audioPlayer" controls></audio>
+        </div>
 
         <div class="status-strip" id="statusBar">
             Ready: Awaiting track import...
@@ -215,9 +243,9 @@
             <table class="timeline-table">
                 <thead>
                     <tr>
-                        <th style="width: 40%;">Start Timestamp (s)</th>
-                        <th style="width: 40%;">End Timestamp (s)</th>
-                        <th style="width: 20%; text-align: right;"><button class="btn-action btn-add" id="addRangeBtn" disabled>+ Add Row</button></th>
+                        <th style="width: 42%;">Start Timestamp (s)</th>
+                        <th style="width: 42%;">End Timestamp (s)</th>
+                        <th style="width: 16%; text-align: right;"><button class="btn-action btn-add" id="addRangeBtn" disabled>+ Add Row</button></th>
                     </tr>
                 </thead>
                 <tbody id="rangeTableBody">
@@ -236,6 +264,7 @@
     <script>
         const fileInput = document.getElementById('fileInput');
         const uploadLabel = document.getElementById('uploadLabel');
+        const audioPlayer = document.getElementById('audioPlayer');
         const statusBar = document.getElementById('statusBar');
         const modeToggle = document.getElementById('modeToggle');
         const addRangeBtn = document.getElementById('addRangeBtn');
@@ -251,8 +280,12 @@
             if (!file) return;
 
             uploadLabel.innerText = file.name;
-            statusBar.innerText = "Decoding: Reading soundwave matrices...";
+            statusBar.innerText = "Decoding: Connecting tracks to web audio hardware streams...";
             rangeTableBody.innerHTML = ""; 
+
+            // Link the selected file blob directly to the visual media player element
+            const objectURL = URL.createObjectURL(file);
+            audioPlayer.src = objectURL;
 
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -265,7 +298,7 @@
                 addRangeBtn.disabled = false;
                 compileBtn.disabled = false;
                 
-                // Automatically generate the initial template configuration row
+                // Load an initial timestamp entry row right away
                 addTimelineRow(0, Math.min(30, trackDuration));
 
             } catch (err) {
@@ -277,18 +310,36 @@
         function addTimelineRow(startVal = 0, endVal = 10) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="number" class="time-input start-time" value="${startVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}"></td>
-                <td><input type="number" class="time-input end-time" value="${endVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}"></td>
+                <td>
+                    <div class="time-cell-wrapper">
+                        <input type="number" class="time-input start-time" value="${startVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}">
+                        <button class="btn-action btn-capture" onclick="captureTime(this, 'start')">Use Current</button>
+                    </div>
+                </td>
+                <td>
+                    <div class="time-cell-wrapper">
+                        <input type="number" class="time-input end-time" value="${endVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}">
+                        <button class="btn-action btn-capture" onclick="captureTime(this, 'end')">Use Current</button>
+                    </div>
+                </td>
                 <td style="text-align: right;"><button class="btn-action btn-del" onclick="this.closest('tr').remove()">Remove</button></td>
             `;
             rangeTableBody.appendChild(row);
         }
 
+        // NEW CAPTURE UTILITY: Grabs the exact player timestamp and rounds it to 1 decimal place
+        function captureTime(buttonElement, targetField) {
+            if (!audioPlayer.src) return;
+            const currentTime = audioPlayer.currentTime;
+            const parentCell = buttonElement.closest('div');
+            const targetInput = parentCell.querySelector('.time-input');
+            targetInput.value = currentTime.toFixed(1);
+        }
+
         addRangeBtn.addEventListener('click', () => {
-            addTimelineRow(0, Math.min(10, trackDuration));
+            addTimelineRow(audioPlayer.currentTime, Math.min(audioPlayer.currentTime + 10, trackDuration));
         });
 
-        // CORE PROCESSING PIPELINE: Math loops mapping matrix intersections
         compileBtn.addEventListener('click', () => {
             if (!decodedAudioBuffer) return;
 
@@ -298,7 +349,6 @@
             const channels = decodedAudioBuffer.numberOfChannels;
             const totalFrames = decodedAudioBuffer.length;
 
-            // 1. Gather all ranges from the input fields
             const rows = rangeTableBody.querySelectorAll('tr');
             let inputRanges = [];
             rows.forEach(row => {
@@ -309,18 +359,14 @@
                 }
             });
 
-            // Sort input timestamp ranges chronologically
             inputRanges.sort((a, b) => a.start - b.start);
 
-            // 2. Compute timeline regions based on the selected mode (Keep vs Discard)
             let finalKeepRanges = [];
             const isKeepMode = modeToggle.checked;
 
             if (isKeepMode) {
-                // Keep Mode: Use the user-defined ranges directly
                 finalKeepRanges = inputRanges;
             } else {
-                // Discard Mode: Invert the ranges to keep everything *except* the user's selections
                 let currentPos = 0;
                 inputRanges.forEach(range => {
                     if (range.start > currentPos) {
@@ -333,7 +379,6 @@
                 }
             }
 
-            // 3. Calculate total frames needed for the final combined track
             let targetTotalFrames = 0;
             let frameSegments = finalKeepRanges.map(range => {
                 const startFrame = Math.floor(range.start * sampleRate);
@@ -349,7 +394,6 @@
                 return;
             }
 
-            // 4. Create an empty memory container and splice the data blocks together
             const outputBuffer = audioContext.createBuffer(channels, targetTotalFrames, sampleRate);
 
             for (let ch = 0; ch < channels; ch++) {
@@ -363,7 +407,6 @@
                 });
             }
 
-            // 5. Convert the completed memory track into a downloadable file
             statusBar.innerText = "Encoding: Generating high-fidelity download file...";
             const wavBlob = bufferToWavBlob(outputBuffer);
             
@@ -379,7 +422,6 @@
             statusBar.innerText = "Success: Clean audio file compiled and downloaded.";
         });
 
-        // WAV File Binary Array Encoder Utility
         function bufferToWavBlob(buffer) {
             const numOfChan = buffer.numberOfChannels;
             const sampleRate = buffer.sampleRate;
