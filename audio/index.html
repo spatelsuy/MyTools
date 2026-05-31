@@ -1,483 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Multi-Track Studio Engine</title>
-    <style>
-        :root {
-            --bg-base: #f8fafc;
-            --bg-surface: #ffffff;
-            --border-main: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --accent-blue: #2563eb;
-            --accent-blue-hover: #1d4ed8;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --radius-main: 10px;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            padding: 40px 20px;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .studio-card {
-            width: 100%;
-            max-width: 680px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-main);
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .header-block h1 { font-size: 1.4rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.02em; }
-        .subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 4px; }
-
-        .drop-zone {
-            border: 2px dashed var(--border-main);
-            background: #f8fafc;
-            border-radius: var(--radius-main);
-            padding: 35px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        .drop-zone:hover { border-color: var(--accent-blue); background: #f0fdf4; }
-        #fileInput { display: none; }
-
-        /* Media Player Dashboard Layout Styles */
-        .player-panel {
-            background: #f1f5f9;
-            border-radius: var(--radius-main);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        audio {
-            width: 100%;
-            outline: none;
-        }
-
-        .status-strip {
-            background: #0f172a;
-            border-radius: var(--radius-main);
-            padding: 14px 16px;
-            font-size: 0.85rem;
-            font-family: monospace;
-            color: #38bdf8;
-        }
-
-        .mode-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #f1f5f9;
-            padding: 12px 16px;
-            border-radius: var(--radius-main);
-        }
-        .mode-label { font-size: 0.9rem; font-weight: 600; }
-        
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 160px;
-            height: 34px;
-        }
-        .toggle-switch input { display: none; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--accent-red);
-            transition: .3s;
-            border-radius: 34px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 15px;
-            color: white;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px; width: 75px;
-            left: 4px; bottom: 4px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 20px;
-        }
-        input:checked + .slider { background-color: var(--accent-green); }
-        input:checked + .slider:before { transform: translateX(77px); }
-
-        /* Dynamic Timeline Entry Table */
-        .timeline-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-        .timeline-table th {
-            text-align: left;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border-main);
-        }
-        .timeline-table td { padding: 12px 0; vertical-align: middle; }
-        
-        .time-cell-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            width: 95%;
-        }
-        .time-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-main);
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 0.9rem;
-        }
-        .time-input:disabled { background: #f1f5f9; cursor: not-allowed; }
-
-        .btn-action {
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            white-space: nowrap;
-        }
-        .btn-capture { background: #cbd5e1; color: #0f172a; }
-        .btn-capture:hover { background: #94a3b8; }
-        .btn-add { background: #e2e8f0; color: var(--text-main); }
-        .btn-add:hover { background: #cbd5e1; }
-        .btn-del { background: #fee2e2; color: var(--accent-red); }
-        .btn-del:hover { background: #fecaca; }
-
-        .export-control-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-top: 12px;
-        }
-        .select-format {
-            padding: 12px;
-            border: 1px solid var(--border-main);
-            border-radius: var(--radius-main);
-            font-size: 0.9rem;
-            background: white;
-        }
-
-        .btn-compile {
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            border-radius: var(--radius-main);
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-compile:hover:not(:disabled) { background: var(--accent-blue-hover); }
-        .btn-compile:disabled { opacity: 0.35; cursor: not-allowed; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Engine</title>
+<style>
+:root {
+  --bg-base: #f8fafc;
+  --bg-surf: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-mut: #64748b;
+  --blue: #2563eb;
+  --blue-h: #1d4ed8;
+  --green: #10b981;
+  --red: #ef4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text);
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+.card {
+  width: 100%;
+  max-width: 600px;
+  background: var(--bg-surf);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+h1 { font-size: 1.25rem; font-weight: 700; }
+.sub { font-size: 0.85rem; color: var(--text-mut); }
+.drop {
+  border: 2px dashed var(--border);
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+#fileInput { display: none; }
+.player { background: #f1f5f9; padding: 12px; border-radius: 8px; }
+audio { width: 100%; }
+.status {
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.8rem;
+  font-family: monospace;
+  color: #38bdf8;
+}
+.mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid var(--blue);
+}
+.m-lbl { font-size: 0.85rem; font-weight: 600; }
+.m-dsc { font-size: 0.75rem; color: var(--text-mut); }
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 140px;
+  height: 30px;
+}
+.switch input { display: none; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #cbd5e1;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #475569;
+  transition: .2s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px; width: 65px;
+  left: 4px; bottom: 4px;
+  background: white;
+  border-radius: 20px;
+  transition: .2s;
+}
+input:checked + .slider { background: var(--blue); color: #fff; }
+input:checked + .slider:before { transform: translateX(67px); }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 0.75rem; color: var(--text-mut); padding-bottom: 6px; }
+td { padding: 6px 0; }
+.t-wrap { display: flex; gap: 4px; width: 95%; }
+.t-in {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: monospace;
+}
+.btn {
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+}
+.b-cap { background: #cbd5e1; color: #0f172a; }
+.b-add { background: #e2e8f0; }
+.b-del { background: #fee2e2; color: var(--red); }
+.b-comp {
+  width: 100%;
+  padding: 12px;
+  background: var(--blue);
+  color: white;
+  font-size: 0.9rem;
+  border-radius: 8px;
+}
+.b-comp:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
 </head>
 <body>
-
-    <div class="studio-card">
-        <div class="header-block">
-            <h1>Multi-Range Audio Studio</h1>
-            <p class="subtitle">Listen to your track and capture real-time player timestamps to compile custom cuts</p>
-        </div>
-
-        <label class="drop-zone">
-            <span style="font-size: 1.5rem;">📁</span>
-            <span id="uploadLabel" class="drop-text" style="font-weight: 500;">Select Audio File (MP3, WAV)</span>
-            <input type="file" id="fileInput" accept="audio/*">
-        </label>
-
-        <!-- Dynamic Embedded Hardware Player Module -->
-        <div class="player-panel">
-            <audio id="audioPlayer" controls></audio>
-        </div>
-
-        <div class="status-strip" id="statusBar">
-            Ready: Awaiting track import...
-        </div>
-
-        <div class="mode-container">
-            <div class="mode-label">Operational Profile:</div>
-            <label class="toggle-switch">
-                <input type="checkbox" id="modeToggle">
-                <span class="slider">
-                    <span style="z-index:1; margin-left:5px;">DISCARD</span>
-                    <span style="z-index:1; margin-right:8px;">KEEP</span>
-                </span>
-            </label>
-        </div>
-
-        <div>
-            <table class="timeline-table">
-                <thead>
-                    <tr>
-                        <th style="width: 42%;">Start Timestamp (s)</th>
-                        <th style="width: 42%;">End Timestamp (s)</th>
-                        <th style="width: 16%; text-align: right;"><button class="btn-action btn-add" id="addRangeBtn" disabled>+ Add Row</button></th>
-                    </tr>
-                </thead>
-                <tbody id="rangeTableBody">
-                    <!-- Dynamic form rows append here -->
-                </tbody>
-            </table>
-        </div>
-
-        <div class="export-control-grid">
-            <select class="select-format" id="formatSelect">
-                <option value="wav">Lossless Format (.WAV)</option>
-            </select>
-            <button class="btn-compile" id="compileBtn" disabled>Process & Save Merged File</button>
-        </div>
+<div class="card">
+  <div class="header-block">
+    <h1>Multi-Range Audio Studio</h1>
+    <p class="sub">Listen and capture timestamps</p>
+  </div>
+  <label class="drop">
+    <span id="uploadLabel">📁 Select Audio File</span>
+    <input type="file" id="fileInput" accept="audio/*">
+  </label>
+  <div class="player"><audio id="audioPlayer" controls></audio></div>
+  <div class="status" id="statusBar">Idle.</div>
+  <div class="mode">
+    <div>
+      <div id="mTitle" class="m-lbl">Mode: DISCARD</div>
+      <div id="mDesc" class="m-dsc">Cuts your ranges out.</div>
     </div>
-    <script>
-        const fileInput = document.getElementById('fileInput');
-        const uploadLabel = document.getElementById('uploadLabel');
-        const audioPlayer = document.getElementById('audioPlayer');
-        const statusBar = document.getElementById('statusBar');
-        const modeToggle = document.getElementById('modeToggle');
-        const addRangeBtn = document.getElementById('addRangeBtn');
-        const rangeTableBody = document.getElementById('rangeTableBody');
-        const compileBtn = document.getElementById('compileBtn');
+    <label class="switch">
+      <input type="checkbox" id="modeToggle">
+      <span class="slider"><span>DISCARD</span><span>KEEP</span></span>
+    </label>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:42%">Start (s)</th>
+        <th style="width:42%">End (s)</th>
+        <th style="width:16%;text-align:right"><button class="btn b-add" id="addBtn" disabled>+ Row</button></th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  <button class="btn b-comp" id="compBtn" disabled>Process & Save</button>
+</div>
+<script>
+const fileInput = document.getElementById('fileInput');
+const uploadLabel = document.getElementById('uploadLabel');
+const audioPlayer = document.getElementById('audioPlayer');
+const statusBar = document.getElementById('statusBar');
+const modeToggle = document.getElementById('modeToggle');
+const mTitle = document.getElementById('mTitle');
+const mDesc = document.getElementById('mDesc');
+const addBtn = document.getElementById('addBtn');
+const tableBody = document.getElementById('tableBody');
+const compBtn = document.getElementById('compBtn');
 
-        let audioContext = null;
-        let decodedAudioBuffer = null;
-        let trackDuration = 0;
+let audioCtx = null, decodedBuf = null, duration = 0;
 
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+modeToggle.addEventListener('change', () => {
+  if (modeToggle.checked) {
+    mTitle.innerText = "Mode: KEEP";
+    mTitle.style.color = "var(--green)";
+    mDesc.innerText = "Isolates only your ranges.";
+  } else {
+    mTitle.innerText = "Mode: DISCARD";
+    mTitle.style.color = "var(--text)";
+    mDesc.innerText = "Cuts your ranges out.";
+  }
+});
 
-            uploadLabel.innerText = file.name;
-            statusBar.innerText = "Decoding: Connecting tracks to web audio hardware streams...";
-            rangeTableBody.innerHTML = ""; 
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  uploadLabel.innerText = file.name;
+  statusBar.innerText = "Decoding audio...";
+  tableBody.innerHTML = "";
+  audioPlayer.src = URL.createObjectURL(file);
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const arrBuf = await file.arrayBuffer();
+    decodedBuf = await audioCtx.decodeAudioData(arrBuf);
+    duration = decodedBuf.duration;
+    statusBar.innerText = `Track Loaded: ${duration.toFixed(2)}s`;
+    addBtn.disabled = compBtn.disabled = false;
+    addTimelineRow(0, Math.min(30, duration));
+  } catch (err) {
+    statusBar.innerText = "Error decoding file.";
+  }
+});
 
-            // Link the selected file blob directly to the visual media player element
-            const objectURL = URL.createObjectURL(file);
-            audioPlayer.src = objectURL;
+function addTimelineRow(s = 0, e = 10) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><div class="t-wrap"><input type="number" class="t-in start-time" value="${s.toFixed(1)}" step="0.1" min="0" max="${duration}"><button class="btn b-cap" onclick="capTime(this)">Get</button></div></td>
+    <td><div class="t-wrap"><input type="number" class="t-in end-time" value="${e.toFixed(1)}" step="0.1" min="0" max="${duration}"><button class="btn b-cap" onclick="capTime(this)">Get</button></div></td>
+    <td style="text-align:right"><button class="btn b-del" onclick="this.closest('tr').remove()">X</button></td>
+  `;
+  tableBody.appendChild(tr);
+}
 
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const arrayBuffer = await file.arrayBuffer();
-                decodedAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                trackDuration = decodedAudioBuffer.duration;
+function capTime(btn) {
+  if (!audioPlayer.src) return;
+  btn.previousElementSibling.value = audioPlayer.currentTime.toFixed(1);
+}
 
-                statusBar.innerText = `Track Loaded: Total duration is ${trackDuration.toFixed(2)} seconds.`;
-                
-                addRangeBtn.disabled = false;
-                compileBtn.disabled = false;
-                
-                // Load an initial timestamp entry row right away
-                addTimelineRow(0, Math.min(30, trackDuration));
+addBtn.addEventListener('click', () => addTimelineRow(audioPlayer.currentTime, Math.min(audioPlayer.currentTime + 10, duration)));
 
-            } catch (err) {
-                statusBar.innerText = "Error: Incompatible file structure. Please try a standard track.";
-                console.error(err);
-            }
-        });
+compBtn.addEventListener('click', () => {
+  if (!decodedBuf) return;
+  statusBar.innerText = "Processing vectors...";
+  const sRate = decodedBuf.sampleRate, chans = decodedBuf.numberOfChannels, totalF = decodedBuf.length;
+  let inputRanges = [];
+  tableBody.querySelectorAll('tr').forEach(row => {
+    const s = Math.max(0, Math.min(duration, parseFloat(row.querySelector('.start-time').value) || 0));
+    const e = Math.max(0, Math.min(duration, parseFloat(row.querySelector('.end-time').value) || 0));
+    if (s < e) inputRanges.push({ start: s, end: e });
+  });
+  inputRanges.sort((a, b) => a.start - b.start);
+  let finalKeep = [];
+  if (modeToggle.checked) {
+    finalKeep = inputRanges;
+  } else {
+    let curr = 0;
+    inputRanges.forEach(r => {
+      if (r.start > curr) finalKeep.push({ start: curr, end: r.start });
+      curr = Math.max(curr, r.end);
+    });
+    if (curr < duration) finalKeep.push({ start: curr, end: duration });
+  }
+  let targetF = 0;
+  let segments = finalKeep.map(r => {
+    const sF = Math.floor(r.start * sRate);
+    const eF = Math.min(totalF, Math.floor(r.end * sRate));
+    const len = eF - sF;
+    if (len > 0) targetF += len;
+    return { sF, eF, len };
+  }).filter(seg => seg.len > 0);
+  if (targetF === 0) { alert("Empty track selection."); return; }
+  const outBuf = audioCtx.createBuffer(chans, targetF, sRate);
+  for (let ch = 0; ch < chans; ch++) {
+    const src = decodedBuf.getChannelData(ch);
+    let offset = 0;
+    segments.forEach(seg => {
+      outBuf.copyToChannel(src.subarray(seg.sF, seg.eF), ch, offset);
+      offset += seg.len;
+    });
+  }
+  statusBar.innerText = "Saving file...";
+  const url = URL.createObjectURL(bufToWav(outBuf));
+  const a = document.createElement('a');
+  a.href = url; a.download = `edit_${Date.now()}.wav`;
+  document.body.appendChild(a); a.click(); a.remove();
+  statusBar.innerText = "Download complete.";
+});
 
-        function addTimelineRow(startVal = 0, endVal = 10) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>
-                    <div class="time-cell-wrapper">
-                        <input type="number" class="time-input start-time" value="${startVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}">
-                        <button class="btn-action btn-capture" onclick="captureTime(this, 'start')">Use Current</button>
-                    </div>
-                </td>
-                <td>
-                    <div class="time-cell-wrapper">
-                        <input type="number" class="time-input end-time" value="${endVal.toFixed(1)}" step="0.1" min="0" max="${trackDuration}">
-                        <button class="btn-action btn-capture" onclick="captureTime(this, 'end')">Use Current</button>
-                    </div>
-                </td>
-                <td style="text-align: right;"><button class="btn-action btn-del" onclick="this.closest('tr').remove()">Remove</button></td>
-            `;
-            rangeTableBody.appendChild(row);
-        }
-
-        // NEW CAPTURE UTILITY: Grabs the exact player timestamp and rounds it to 1 decimal place
-        function captureTime(buttonElement, targetField) {
-            if (!audioPlayer.src) return;
-            const currentTime = audioPlayer.currentTime;
-            const parentCell = buttonElement.closest('div');
-            const targetInput = parentCell.querySelector('.time-input');
-            targetInput.value = currentTime.toFixed(1);
-        }
-
-        addRangeBtn.addEventListener('click', () => {
-            addTimelineRow(audioPlayer.currentTime, Math.min(audioPlayer.currentTime + 10, trackDuration));
-        });
-
-        compileBtn.addEventListener('click', () => {
-            if (!decodedAudioBuffer) return;
-
-            statusBar.innerText = "Calculating timelines and compiling audio frames...";
-
-            const sampleRate = decodedAudioBuffer.sampleRate;
-            const channels = decodedAudioBuffer.numberOfChannels;
-            const totalFrames = decodedAudioBuffer.length;
-
-            const rows = rangeTableBody.querySelectorAll('tr');
-            let inputRanges = [];
-            rows.forEach(row => {
-                const start = Math.max(0, Math.min(trackDuration, parseFloat(row.querySelector('.start-time').value) || 0));
-                const end = Math.max(0, Math.min(trackDuration, parseFloat(row.querySelector('.end-time').value) || 0));
-                if (start < end) {
-                    inputRanges.push({ start, end });
-                }
-            });
-
-            inputRanges.sort((a, b) => a.start - b.start);
-
-            let finalKeepRanges = [];
-            const isKeepMode = modeToggle.checked;
-
-            if (isKeepMode) {
-                finalKeepRanges = inputRanges;
-            } else {
-                let currentPos = 0;
-                inputRanges.forEach(range => {
-                    if (range.start > currentPos) {
-                        finalKeepRanges.push({ start: currentPos, end: range.start });
-                    }
-                    currentPos = Math.max(currentPos, range.end);
-                });
-                if (currentPos < trackDuration) {
-                    finalKeepRanges.push({ start: currentPos, end: trackDuration });
-                }
-            }
-
-            let targetTotalFrames = 0;
-            let frameSegments = finalKeepRanges.map(range => {
-                const startFrame = Math.floor(range.start * sampleRate);
-                const endFrame = Math.min(totalFrames, Math.floor(range.end * sampleRate));
-                const length = endFrame - startFrame;
-                if (length > 0) targetTotalFrames += length;
-                return { startFrame, endFrame, length };
-            }).filter(seg => seg.length > 0);
-
-            if (targetTotalFrames === 0) {
-                alert("Processing failed: The calculated timeline results in an empty track.");
-                statusBar.innerText = "Error: Output track length is zero.";
-                return;
-            }
-
-            const outputBuffer = audioContext.createBuffer(channels, targetTotalFrames, sampleRate);
-
-            for (let ch = 0; ch < channels; ch++) {
-                const sourceData = decodedAudioBuffer.getChannelData(ch);
-                let writeOffset = 0;
-
-                frameSegments.forEach(seg => {
-                    const sampleSegment = sourceData.subarray(seg.startFrame, seg.endFrame);
-                    outputBuffer.copyToChannel(sampleSegment, ch, writeOffset);
-                    writeOffset += seg.length;
-                });
-            }
-
-            statusBar.innerText = "Encoding: Generating high-fidelity download file...";
-            const wavBlob = bufferToWavBlob(outputBuffer);
-            
-            const url = URL.createObjectURL(wavBlob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = `spliced_audio_${Date.now()}.wav`;
-            document.body.appendChild(anchor);
-            anchor.click();
-            document.body.removeChild(anchor);
-            URL.revokeObjectURL(url);
-
-            statusBar.innerText = "Success: Clean audio file compiled and downloaded.";
-        });
-
-        function bufferToWavBlob(buffer) {
-            const numOfChan = buffer.numberOfChannels;
-            const sampleRate = buffer.sampleRate;
-            const format = 1; 
-            const bitDepth = 16;
-            
-            let result = numOfChan === 2 
-                ? interleave(buffer.getChannelData(0), buffer.getChannelData(1)) 
-                : buffer.getChannelData(0);
-            
-            const bufferLen = result.length * 2;
-            const wavBuffer = new ArrayBuffer(44 + bufferLen);
-            const view = new DataView(wavBuffer);
-            
-            writeString(view, 0, 'RIFF');
-            view.setUint32(4, 36 + bufferLen, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, format, true);
-            view.setUint16(22, numOfChan, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * numOfChan * (bitDepth / 8), true);
-            view.setUint16(32, numOfChan * (bitDepth / 8), true);
-            view.setUint16(34, bitDepth, true);
-            writeString(view, 36, 'data');
-            view.setUint32(40, bufferLen, true);
-            
-            floatTo16BitPCM(view, 44, result);
-            return new Blob([view], { type: 'audio/wav' });
-        }
-
-        function interleave(inputL, inputR) {
-            const length = inputL.length + inputR.length;
-            const result = new Float32Array(length);
-            let index = 0, inputIndex = 0;
-            while (index < length) {
-                result[index++] = inputL[inputIndex];
-                result[index++] = inputR[inputIndex];
-                inputIndex++;
-            }
-            return result;
-        }
-
-        function floatTo16BitPCM(output, offset, input) {
-            for (let i = 0; i < input.length; i++, offset += 2) {
-                let s = Math.max(-1, Math.min(1, input[i]));
-                output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-            }
-        }
-
-        function writeString(view, offset, string) {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        }
-    </script>
+function bufToWav(buf) {
+  const chs = buf.numberOfChannels, sRate = buf.sampleRate, len = buf.length * 2;
+  let res = chs === 2 ? inter(buf.getChannelData(0), buf.getChannelData(1)) : buf.getChannelData(0);
+  const ab = new ArrayBuffer(44 + len), v = new DataView(ab);
+  wStr(v, 0, 'RIFF'); v.setUint32(4, 36 + len, true); wStr(v, 8, 'WAVE');
+  wStr(v, 12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, chs, true); v.setUint32(24, sRate, true);
+  v.setUint32(28, sRate * chs * 2, true); v.setUint16(32, chs * 2, true);
+  v.setUint16(34, 16, true); wStr(v, 36, 'data'); v.setUint32(40, len, true);
+  for (let i = 0; i < res.length; i++) {
+    let s = Math.max(-1, Math.min(1, res[i]));
+    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return new Blob([v], { type: 'audio/wav' });
+}
+function inter(l, r) {
+  let res = new Float32Array(l.length + r.length), idx = 0, iIdx = 0;
+  while (idx < res.length) { res[idx++] = l[iIdx]; res[idx++] = r[iIdx++]; }
+  return res;
+}
+function wStr(v, o, str) { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); }
+</script>
 </body>
 </html>
