@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Audio Wave Engine</title>
+    <style>
+        :root {
+            --bg-base: #fafafa;
+            --bg-surface: #ffffff;
+            --border-main: #e4e4e7;
+            --text-main: #18181b;
+            --text-muted: #71717a;
+            --accent-blue: #2563eb;
+            --accent-blue-hover: #1d4ed8;
+            --accent-red: #dc2626;
+            --accent-red-hover: #b91c1c;
+            --radius-main: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .studio-card {
+            width: 100%;
+            max-width: 520px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-main);
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .header-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .drop-zone {
+            border: 1px dashed var(--border-main);
+            background: #fcfcfd;
+            border-radius: var(--radius-main);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--accent-blue);
+            background: #f8fafc;
+        }
+
+        .drop-icon {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        .drop-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .status-strip {
+            background: #f4f4f5;
+            border-radius: var(--radius-main);
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .param-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-main);
+            background: var(--bg-surface);
+            color: var(--text-main);
+            border-radius: var(--radius-main);
+            font-size: 0.9rem;
+            font-family: monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .input-group input:disabled {
+            background: #f4f4f5;
+            cursor: not-allowed;
+        }
+
+        .action-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: var(--radius-main);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-blue-hover);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-main);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #f4f4f5;
+            border-color: #d4d4d8;
+        }
+
+        .btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="studio-card">
+        <div class="header-block">
+            <h1>Audio Snipper</h1>
+            <p class="subtitle">Lossless offline audio cutter and track isolation utility</p>
+        </div>
+        
+        <label class="drop-zone">
+            <span class="drop-icon"></span>
+            <span class="drop-text" id="uploadLabel">Choose audio track (MP3, WAV)</span>
+            <input type="file" id="fileInput" accept="audio/*">
+        </label>
+
+        <div class="status-strip" id="statusBar">
+            Status: System engine idle. Awaiting media import...
+        </div>
+
+        <div class="param-grid">
+            <div class="input-group">
+                <label for="startTime">Start Index (s)</label>
+                <input type="number" id="startTime" value="0.0" step="0.1" min="0" disabled>
+            </div>
+            <div class="input-group">
+                <label for="endTime">End Index (s)</label>
+                <input type="number" id="endTime" value="0.0" step="0.1" min="0" disabled>
+            </div>
+        </div>
+
+        <div class="action-stack">
+            <button class="btn btn-primary" id="extractBtn" disabled>Extract Highlighted Window</button>
+            <button class="btn btn-secondary" id="removeBtn" disabled>Cut Selection & Fuse Remainder</button>
+        </div>
+    </div>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadLabel = document.getElementById('uploadLabel');
+        const statusBar = document.getElementById('statusBar');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const extractBtn = document.getElementById('extractBtn');
+        const removeBtn = document.getElementById('removeBtn');
+
+        let audioContext = null;
+        let decodedAudioBuffer = null;
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            uploadLabel.innerText = file.name;
+            statusBar.innerText = "Processing: Initializing hardware decoding pipeline...";
+            
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const arrayBuffer = await file.arrayBuffer();
+                decodedAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                const duration = decodedAudioBuffer.duration;
+                statusBar.innerText = `Ready: Parsed track duration is ${duration.toFixed(2)}s`;
+
+                startTimeInput.value = 0.0;
+                startTimeInput.max = duration;
+                endTimeInput.value = duration.toFixed(1);
+                endTimeInput.max = duration;
+
+                startTimeInput.disabled = false;
+                endTimeInput.disabled = false;
+                extractBtn.disabled = false;
+                removeBtn.disabled = false;
+
+            } catch (err) {
+                statusBar.innerText = "Error: Bitstream format incompatible or unreadable.";
+                console.error(err);
+            }
+        });
+
+        function bufferToWavBlob(buffer) {
+            const numOfChan = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1; // Linear PCM 16-bit format configurations
+            const bitDepth = 16;
+            
+            let result;
+            if (numOfChan === 2) {
+                result = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
+            } else {
+                result = buffer.getChannelData(0);
+            }
+            
+            const bufferLen = result.length * 2;
+            const wavBuffer = new ArrayBuffer(44 + bufferLen);
+            const view = new DataView(wavBuffer);
+            
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + bufferLen, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, format, true);
+            view.setUint16(22, numOfChan, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numOfChan * (bitDepth / 8), true);
+            view.setUint16(32, numOfChan * (bitDepth / 8), true);
+            view.setUint16(34, bitDepth, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, bufferLen, true);
+            
+            floatTo16BitPCM(view, 44, result);
+            
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function interleave(inputL, inputR) {
+            const length = inputL.length + inputR.length;
+            const result = new Float32Array(length);
+            let index = 0, inputIndex = 0;
+            while (index < length) {
+                result[index++] = inputL[inputIndex];
+                result[index++] = inputR[inputIndex];
+                inputIndex++;
+            }
+            return result;
+        }
+
+        function floatTo16BitPCM(output, offset, input) {
+            for (let i = 0; i < input.length; i++, offset += 2) {
+                let s = Math.max(-1, Math.min(1, input[i]));
+                output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        function executeDownload(blob, prefix) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${prefix}_${Date.now()}.wav`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        extractBtn.addEventListener('click', () => {
+            const startSec = parseFloat(startTimeInput.value);
+            const endSec = parseFloat(endTimeInput.value);
+            
+            if (startSec >= endSec) { alert("Timeline operational paradox: Start marker must precede End marker."); return; }
+
+            statusBar.innerText = "Compiling: Exporting isolated slice window bounds...";
+            
+            const sampleRate = decodedAudioBuffer.sampleRate;
+            const startFrame = Math.floor(startSec * sampleRate);
+            const endFrame = Math.floor(endSec * sampleRate);
+            const sliceFramesCount = endFrame - startFrame;
+
+            const exportBuffer = audioContext.createBuffer(
+                decodedAudioBuffer.numberOfChannels,
+                sliceFramesCount,
+                sampleRate
+            );
+
+            for (let i = 0; i < decodedAudioBuffer.numberOfChannels; i++) {
+                const channelData = decodedAudioBuffer.getChannelData(i);
+                const cutSlice = channelData.subarray(startFrame, endFrame);
+                exportBuffer.copyToChannel(cutSlice, i, 0);
+            }
+
+            const waveBlob = bufferToWavBlob(exportBuffer);
+            executeDownload(waveBlob, 'extracted_track');
+            statusBar.innerText = "Complete: Isolated snippet saved successfully.";
+        });
+
+        removeBtn.addEventListener('click', () => {
+            const startSec = parseFloat(startTimeInput.value);
+            const endSec = parseFloat(endTimeInput.value);
+
+            if (startSec >= endSec) { alert("Timeline operational paradox: Start marker must precede End marker."); return; }
+
+            statusBar.innerText = "Compiling: Splicing remainder structural regions together...";
+
+            const sampleRate = decodedAudioBuffer.sampleRate;
+            const startFrame = Math.floor(startSec * sampleRate);
+            const endFrame = Math.floor(endSec * sampleRate);
+            
+            const totalOriginalFrames = decodedAudioBuffer.length;
+            const framesToRemove = endFrame - startFrame;
+            const dynamicRemainderFrames = totalOriginalFrames - framesToRemove;
+
+            const exportBuffer = audioContext.createBuffer(
+                decodedAudioBuffer.numberOfChannels,
+                dynamicRemainderFrames,
+                sampleRate
+            );
+
+            for (let i = 0; i < decodedAudioBuffer.numberOfChannels; i++) {
+                const channelData = decodedAudioBuffer.getChannelData(i);
+                const part1 = channelData.subarray(0, startFrame);
+                const part2 = channelData.subarray(endFrame, totalOriginalFrames);
+
+                exportBuffer.copyToChannel(part1, i, 0);
+                exportBuffer.copyToChannel(part2, i, startFrame);
+            }
+
+            const waveBlob = bufferToWavBlob(exportBuffer);
+            executeDownload(waveBlob, 'merged_remainder');
+            statusBar.innerText = "Complete: Spliced audio matrix saved successfully.";
+        });
+    </script>
+</body>
+</html>
