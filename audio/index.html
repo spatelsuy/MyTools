@@ -1,172 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Studio Engine</title>
-<style>
-:root {
-  --bg-base: #f8fafc;
-  --bg-surf: #ffffff;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text-mut: #64748b;
-  --blue: #2563eb;
-  --green: #10b981;
-  --red: #ef4444;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: system-ui, sans-serif;
-  background: var(--bg-base);
-  color: var(--text);
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-}
-.card {
-  width: 100%;
-  max-width: 600px;
-  background: var(--bg-surf);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-}
-h1 { font-size: 1.25rem; font-weight: 700; }
-.sub { font-size: 0.85rem; color: var(--text-mut); }
-.drop {
-  border: 2px dashed var(--border);
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  cursor: pointer;
-}
-#fileInput { display: none; }
-.player { background: #f1f5f9; padding: 12px; border-radius: 8px; }
-audio { width: 100%; }
-.status {
-  background: #0f172a;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 0.8rem;
-  font-family: monospace;
-  color: #38bdf8;
-}
-.mode {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f1f5f9;
-  padding: 12px;
-  border-radius: 8px;
-  border-left: 4px solid var(--blue);
-}
-.m-lbl { font-size: 0.85rem; font-weight: 600; }
-.m-dsc { font-size: 0.75rem; color: var(--text-mut); }
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 140px;
-  height: 30px;
-}
-.switch input { display: none; }
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: #cbd5e1;
-  border-radius: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px;
-  font-size: 0.75rem;
-  font-weight: bold;
-  color: #475569;
-  transition: .2s;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 22px; width: 65px;
-  left: 4px; bottom: 4px;
-  background: white;
-  border-radius: 20px;
-  transition: .2s;
-}
-input:checked + .slider { background: var(--blue); color: #fff; }
-input:checked + .slider:before { transform: translateX(67px); }
-table { width: 100%; border-collapse: collapse; }
-th { text-align: left; font-size: 0.75rem; color: var(--text-mut); padding-bottom: 6px; }
-td { padding: 6px 0; }
-.t-wrap { display: flex; gap: 4px; width: 95%; }
-.t-in {
-  width: 100%;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-family: monospace;
-}
-.btn {
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: bold;
-  cursor: pointer;
-  border: none;
-}
-.b-cap { background: #cbd5e1; color: #0f172a; }
-.b-add { background: #e2e8f0; }
-.b-del { background: #fee2e2; color: var(--red); }
-.b-comp {
-  width: 100%;
-  padding: 12px;
-  background: var(--blue);
-  color: white;
-  font-size: 0.9rem;
-  border-radius: 8px;
-}
-.b-comp:disabled { opacity: 0.4; cursor: not-allowed; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Audio Studio Engine</title>
+    <style>
+        :root {
+            --bg-base: #f8fafc;
+            --bg-surf: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-mut: #64748b;
+            --blue: #2563eb;
+            --green: #10b981;
+            --red: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-base);
+            color: var(--text);
+            padding: 30px 15px;
+            display: flex;
+            justify-content: center;
+        }
+        .card {
+            width: 100%;
+            max-width: 600px;
+            background: var(--bg-surf);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
+        .sub { font-size: 0.85rem; color: var(--text-mut); margin-top: 2px; }
+        .drop {
+            border: 2px dashed var(--border);
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 30px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .drop:hover { border-color: var(--blue); background: #f0fdf4; }
+        #fileInput { display: none; }
+        .player { background: #f1f5f9; padding: 14px; border-radius: 10px; }
+        audio { width: 100%; display: block; outline: none; }
+        .status {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            color: #38bdf8;
+            word-break: break-all;
+        }
+        .mode {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f1f5f9;
+            padding: 14px;
+            border-radius: 10px;
+            border-left: 4px solid var(--blue);
+        }
+        .m-lbl { font-size: 0.9rem; font-weight: 600; transition: color 0.2s; }
+        .m-dsc { font-size: 0.75rem; color: var(--text-mut); margin-top: 2px; }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 140px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+        .switch input { display: none; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #cbd5e1;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #475569;
+            transition: 0.2s ease;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 24px; width: 65px;
+            left: 4px; bottom: 4px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: 0.2s ease;
+        }
+        input:checked + .slider { background: var(--blue); color: #fff; }
+        input:checked + .slider:before { transform: translateX(67px); }
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th { text-align: left; font-size: 0.75rem; color: var(--text-mut); text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        td { padding: 10px 0; vertical-align: middle; }
+        .t-wrap { display: flex; gap: 6px; width: 95%; }
+        .t-in {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+        .b-cap { background: #cbd5e1; color: #0f172a; }
+        .b-cap:hover { background: #94a3b8; }
+        .b-add { background: #e2e8f0; color: var(--text); }
+        .b-add:hover { background: #cbd5e1; }
+        .b-del { background: #fee2e2; color: var(--red); }
+        .b-del:hover { background: #fecaca; }
+        .b-comp {
+            width: 100%;
+            padding: 14px;
+            background: var(--blue);
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+        .b-comp:hover:not(:disabled) { background: var(--blue-h); }
+        .b-comp:disabled { opacity: 0.35; cursor: not-allowed; }
+    </style>
 </head>
 <body>
 <div class="card">
-  <div class="header-block">
-    <h1>Multi-Range Audio Studio</h1>
-    <p class="sub">Listen and capture timestamps</p>
-  </div>
-  <label class="drop">
-    <span id="uploadLabel">📁 Select Audio File</span>
-    <input type="file" id="fileInput" accept="audio/*">
-  </label>
-  <div class="player"><audio id="audioPlayer" controls></audio></div>
-  <div class="status" id="statusBar">Idle.</div>
-  <div class="mode">
-    <div>
-      <div id="mTitle" class="m-lbl">Mode: DISCARD</div>
-      <div id="mDesc" class="m-dsc">Cuts your ranges out.</div>
+    <div class="header-block">
+        <h1>Multi-Range Audio Studio</h1>
+        <p class="sub">Listen to your track and capture exact player timestamps to compile cuts</p>
     </div>
-    <label class="switch">
-      <input type="checkbox" id="modeToggle">
-      <span class="slider"><span>DISCARD</span><span>KEEP</span></span>
+    
+    <label class="drop">
+        <span id="uploadLabel" style="font-weight: 500;">📁 Click to select an audio file (MP3, WAV)</span>
+        <input type="file" id="fileInput" accept="audio/*">
     </label>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th style="width:42%">Start (s)</th>
-        <th style="width:42%">End (s)</th>
-        <th style="width:16%;text-align:right"><button class="btn b-add" id="addBtn" disabled>+ Row</button></th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-  <button class="btn b-comp" id="compBtn" disabled>Process & Save</button>
+    
+    <div class="player"><audio id="audioPlayer" controls></audio></div>
+    <div class="status" id="statusBar">System engine idle. Awaiting media file...</div>
+    
+    <div class="mode">
+        <div>
+            <div id="mTitle" class="m-lbl">Processing Mode: DISCARD</div>
+            <div id="mDesc" class="m-dsc">The engine will CUT OUT your entries and merge the remaining parts.</div>
+        </div>
+        <label class="switch">
+            <input type="checkbox" id="modeToggle">
+            <span class="slider"><span>DISCARD</span><span>KEEP</span></span>
+        </label>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 42%;">Start Time (s)</th>
+                <th style="width: 42%;">End Time (s)</th>
+                <th style="width: 16%; text-align: right;"><button class="btn b-add" id="addBtn" disabled>+ Row</button></th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+    
+    <button class="btn b-comp" id="compBtn" disabled>Process & Save Merged File</button>
 </div>
 <script>
 const fileInput = document.getElementById('fileInput');
@@ -182,133 +201,176 @@ const compBtn = document.getElementById('compBtn');
 
 let audioCtx = null, decodedBuf = null, duration = 0;
 
-// FIXED: Visually and logically synced states
+// Handle visual and physical mode synchronization
 modeToggle.addEventListener('change', () => {
-  if (modeToggle.checked) {
-    mTitle.innerText = "Mode: KEEP";
-    mTitle.style.color = "var(--green)";
-    mDesc.innerText = "Isolates only your ranges.";
-  } else {
-    mTitle.innerText = "Mode: DISCARD";
-    mTitle.style.color = "var(--text)";
-    mDesc.innerText = "Cuts your ranges out.";
-  }
+    if (modeToggle.checked) {
+        mTitle.innerText = "Processing Mode: KEEP";
+        mTitle.style.color = "var(--green)";
+        mDesc.innerText = "The engine will ISOLATE only your entries and drop everything else.";
+    } else {
+        mTitle.innerText = "Processing Mode: DISCARD";
+        mTitle.style.color = "var(--text)";
+        mDesc.innerText = "The engine will CUT OUT your entries and merge the remaining parts.";
+    }
 });
 
+// Primary file upload and decoding handler
 fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files;
-  if (!file) return;
-  uploadLabel.innerText = file.name;
-  statusBar.innerText = "Decoding audio...";
-  tableBody.innerHTML = "";
-  audioPlayer.src = URL.createObjectURL(file);
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const arrBuf = await file.arrayBuffer();
-    decodedBuf = await audioCtx.decodeAudioData(arrBuf);
-    duration = decodedBuf.duration;
-    statusBar.innerText = `Track Loaded: ${duration.toFixed(2)}s`;
-    addBtn.disabled = compBtn.disabled = false;
-    addTimelineRow(0, Math.min(30, duration));
-  } catch (err) {
-    statusBar.innerText = "Error decoding file.";
-  }
+    const file = e.target.files[0];
+    if (!file) return;
+
+    uploadLabel.innerText = file.name;
+    statusBar.innerText = "Loading audio file binary stream...";
+    tableBody.innerHTML = "";
+
+    // Feed the native browser media player element
+    audioPlayer.src = URL.createObjectURL(file);
+
+    try {
+        // Initialize the browser's audio hardware context interface
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Step 1: Read the uploaded file data into an array buffer stream
+        const arrayBuffer = await file.arrayBuffer();
+        
+        statusBar.innerText = "Decoding MP3 compression frameworks into PCM audio channels...";
+        
+        // Step 2: Use the browser's hardware codec to translate the compressed MP3 data
+        decodedBuf = await audioCtx.decodeAudioData(arrayBuffer);
+        duration = decodedBuf.duration;
+        
+        statusBar.innerText = `Track Loaded Successfully: Total length is ${duration.toFixed(2)}s`;
+        
+        // Unlock user interface controls
+        addBtn.disabled = compBtn.disabled = false;
+        
+        // Open up a default first processing row automatically
+        addTimelineRow(0, Math.min(30, duration));
+
+    } catch (err) {
+        statusBar.innerText = "Error: Codec failure. Ensure your file is a valid, uncorrupted MP3/WAV.";
+        console.error(err);
+    }
 });
 
 function addTimelineRow(s = 0, e = 10) {
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><div class="t-wrap"><input type="number" class="t-in start-time" value="${s.toFixed(1)}" step="0.1" min="0" max="${duration}"><button class="btn b-cap" onclick="capTime(this)">Get</button></div></td>
-    <td><div class="t-wrap"><input type="number" class="t-in end-time" value="${e.toFixed(1)}" step="0.1" min="0" max="${duration}"><button class="btn b-cap" onclick="capTime(this)">Get</button></div></td>
-    <td style="text-align:right"><button class="btn b-del" onclick="this.closest('tr').remove()">X</button></td>
-  `;
-  tableBody.appendChild(tr);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><div class="t-wrap"><input type="number" class="t-in start-time" value="${s.toFixed(1)}" step="0.1" min="0" max="${duration}"><button class="btn b-cap" onclick="capTime(this)">Get</button></div></td>
+        <td><div class="t-wrap"><input type="number" class="t-in end-time" value="${e.toFixed(1)}" step="0.1" min="0" max="${duration}"><button class="btn b-cap" onclick="capTime(this)">Get</button></div></td>
+        <td style="text-align: right;"><button class="btn b-del" onclick="this.closest('tr').remove()">X</button></td>
+    `;
+    tableBody.appendChild(tr);
 }
 
 function capTime(btn) {
-  if (!audioPlayer.src) return;
-  btn.previousElementSibling.value = audioPlayer.currentTime.toFixed(1);
+    if (!audioPlayer.src) return;
+    btn.previousElementSibling.value = audioPlayer.currentTime.toFixed(1);
 }
 
-addBtn.addEventListener('click', () => addTimelineRow(audioPlayer.currentTime, Math.min(audioPlayer.currentTime + 10, duration)));
-
-compBtn.addEventListener('click', () => {
-  if (!decodedBuf) return;
-  statusBar.innerText = "Processing vectors...";
-  const sRate = decodedBuf.sampleRate, chans = decodedBuf.numberOfChannels, totalF = decodedBuf.length;
-  let inputRanges = [];
-  tableBody.querySelectorAll('tr').forEach(row => {
-    const s = Math.max(0, Math.min(duration, parseFloat(row.querySelector('.start-time').value) || 0));
-    const e = Math.max(0, Math.min(duration, parseFloat(row.querySelector('.end-time').value) || 0));
-    if (s < e) inputRanges.push({ start: s, end: e });
-  });
-  inputRanges.sort((a, b) => a.start - b.start);
-  
-  let finalKeep = [];
-  
-  // FIXED LOGIC: 
-  // checked === true -> User selected KEEP -> Keep ONLY the input ranges
-  // checked === false -> User selected DISCARD -> Keep EVERYTHING EXCEPT the input ranges
-  if (modeToggle.checked) {
-    finalKeep = inputRanges;
-  } else {
-    let curr = 0;
-    inputRanges.forEach(r => {
-      if (r.start > curr) finalKeep.push({ start: curr, end: r.start });
-      curr = Math.max(curr, r.end);
-    });
-    if (curr < duration) finalKeep.push({ start: curr, end: duration });
-  }
-
-  let targetF = 0;
-  let segments = finalKeep.map(r => {
-    const sF = Math.floor(r.start * sRate);
-    const eF = Math.min(totalF, Math.floor(r.end * sRate));
-    const len = eF - sF;
-    if (len > 0) targetF += len;
-    return { sF, eF, len };
-  }).filter(seg => seg.len > 0);
-  
-  if (targetF === 0) { alert("Empty track selection."); return; }
-  
-  const outBuf = audioCtx.createBuffer(chans, targetF, sRate);
-  for (let ch = 0; ch < chans; ch++) {
-    const src = decodedBuf.getChannelData(ch);
-    let offset = 0;
-    segments.forEach(seg => {
-      outBuf.copyToChannel(src.subarray(seg.sF, seg.eF), ch, offset);
-      offset += seg.len;
-    });
-  }
-  statusBar.innerText = "Saving file...";
-  const url = URL.createObjectURL(bufToWav(outBuf));
-  const a = document.createElement('a');
-  a.href = url; a.download = `edit_${Date.now()}.wav`;
-  document.body.appendChild(a); a.click(); a.remove();
-  statusBar.innerText = "Download complete.";
+addBtn.addEventListener('click', () => {
+    addTimelineRow(audioPlayer.currentTime, Math.min(audioPlayer.currentTime + 10, duration));
 });
 
+// Core processing calculation loops
+compBtn.addEventListener('click', () => {
+    if (!decodedBuf) return;
+    statusBar.innerText = "Analyzing timeline vectors...";
+    
+    const sRate = decodedBuf.sampleRate;
+    const chans = decodedBuf.numberOfChannels;
+    const totalF = decodedBuf.length;
+    
+    let inputRanges = [];
+    tableBody.querySelectorAll('tr').forEach(row => {
+        const s = Math.max(0, Math.min(duration, parseFloat(row.querySelector('.start-time').value) || 0));
+        const e = Math.max(0, Math.min(duration, parseFloat(row.querySelector('.end-time').value) || 0));
+        if (s < e) inputRanges.push({ start: s, end: e });
+    });
+    
+    inputRanges.sort((a, b) => a.start - b.start);
+    
+    let finalKeep = [];
+    
+    // Explicit condition matching your exact logic tracking:
+    // modeToggle.checked === true  -> KEEP Mode active
+    // modeToggle.checked === false -> DISCARD Mode active
+    if (modeToggle.checked) {
+        finalKeep = inputRanges;
+    } else {
+        let curr = 0;
+        inputRanges.forEach(r => {
+            if (r.start > curr) finalKeep.push({ start: curr, end: r.start });
+            curr = Math.max(curr, r.end);
+        });
+        if (curr < duration) finalKeep.push({ start: curr, end: duration });
+    }
+
+    let targetF = 0;
+    let segments = finalKeep.map(r => {
+        const sF = Math.floor(r.start * sRate);
+        const eF = Math.min(totalF, Math.floor(r.end * sRate));
+        const len = eF - sF;
+        if (len > 0) targetF += len;
+        return { sF, eF, len };
+    }).filter(seg => seg.len > 0);
+    
+    if (targetF === 0) { 
+        alert("The calculation resulted in an empty file. Double-check your ranges."); 
+        statusBar.innerText = "Error: Clear operational output parameters.";
+        return; 
+    }
+    
+    // Splicing individual segments sequentially together inside system context
+    const outBuf = audioCtx.createBuffer(chans, targetF, sRate);
+    for (let ch = 0; ch < chans; ch++) {
+        const src = decodedBuf.getChannelData(ch);
+        let offset = 0;
+        segments.forEach(seg => {
+            outBuf.copyToChannel(src.subarray(seg.sF, seg.eF), ch, offset);
+            offset += seg.len;
+        });
+    }
+    
+    statusBar.innerText = "Encoding lossless structural binary data rows...";
+    const url = URL.createObjectURL(bufToWav(outBuf));
+    const a = document.createElement('a');
+    a.href = url; 
+    a.download = `spliced_track_${Date.now()}.wav`;
+    document.body.appendChild(a); 
+    a.click(); 
+    a.remove();
+    statusBar.innerText = "Process Complete: File compiled and downloaded.";
+});
+
+// Binary file formatting converter engine logic
 function bufToWav(buf) {
-  const chs = buf.numberOfChannels, sRate = buf.sampleRate, len = buf.length * 2;
-  let res = chs === 2 ? inter(buf.getChannelData(0), buf.getChannelData(1)) : buf.getChannelData(0);
-  const ab = new ArrayBuffer(44 + len), v = new DataView(ab);
-  wStr(v, 0, 'RIFF'); v.setUint32(4, 36 + len, true); wStr(v, 8, 'WAVE');
-  wStr(v, 12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
-  v.setUint16(22, chs, true); v.setUint32(24, sRate, true);
-  v.setUint32(28, sRate * chs * 2, true); v.setUint16(32, chs * 2, true);
-  v.setUint16(34, 16, true); wStr(v, 36, 'data'); v.setUint32(40, len, true);
-  for (let i = 0; i < res.length; i++) {
-    let s = Math.max(-1, Math.min(1, res[i]));
-    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-  }
-  return new Blob([v], { type: 'audio/wav' });
+    const chs = buf.numberOfChannels, sRate = buf.sampleRate, len = buf.length * 2;
+    let res = chs === 2 ? inter(buf.getChannelData(0), buf.getChannelData(1)) : buf.getChannelData(0);
+    const ab = new ArrayBuffer(44 + len), v = new DataView(ab);
+    
+    wStr(v, 0, 'RIFF'); v.setUint32(4, 36 + len, true); wStr(v, 8, 'WAVE');
+    wStr(v, 12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, chs, true); v.setUint32(24, sRate, true);
+    v.setUint32(28, sRate * chs * 2, true); v.setUint16(32, chs * 2, true);
+    v.setUint16(34, 16, true); wStr(v, 36, 'data'); v.setUint32(40, len, true);
+    
+    for (let i = 0; i < res.length; i++) {
+        let s = Math.max(-1, Math.min(1, res[i]));
+        v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return new Blob([v], { type: 'audio/wav' });
 }
+
 function inter(l, r) {
-  let res = new Float32Array(l.length + r.length), idx = 0, iIdx = 0;
-  while (idx < res.length) { res[idx++] = l[iIdx]; res[idx++] = r[iIdx++]; }
-  return res;
+    let res = new Float32Array(l.length + r.length), idx = 0, iIdx = 0;
+    while (idx < res.length) { res[idx++] = l[iIdx]; res[idx++] = r[iIdx++]; }
+    return res;
 }
-function wStr(v, o, str) { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); }
+
+function wStr(v, o, str) { 
+    for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); 
+}
 </script>
 </body>
 </html>
