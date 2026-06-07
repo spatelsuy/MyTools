@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>SPBasic Tools</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body{
             font-family:Arial;
@@ -41,8 +41,7 @@
 
         .tools{
             display:grid;
-            grid-template-columns:
-                repeat(auto-fit,minmax(220px,1fr));
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
             gap:20px;
             padding:40px;
         }
@@ -64,6 +63,31 @@
         .tool-card h3{
             margin-top:0;
         }
+        /* Mobile */
+        @media (max-width: 768px){
+        
+            .hero{
+                padding:40px 15px 20px;
+            }
+        
+            .hero h1{
+                font-size:32px;
+            }
+        
+            .hero p{
+                font-size:16px;
+            }
+        
+            .tools{
+                grid-template-columns:1fr;
+                padding:20px;
+            }
+        
+            .tool-card{
+                height:auto;
+                min-height:125px;
+            }
+        }        
     </style>
 </head>
 
