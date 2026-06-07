@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SPBasic JSON Formatter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="top-bar">
+    <h2>SPBasic JSON Formatter</h2>
+</div>
+
+<div class="toolbar">
+
+    <input type="file" id="fileInput" />
+
+    <button onclick="formatJSON()">Format</button>
+    <button onclick="minifyJSON()">Minify</button>
+    <button onclick="validateJSON()">Validate</button>
+    <button onclick="autoFixJSON()">Auto Fix</button>
+    <button onclick="downloadJSON()">Download</button>
+    <button onclick="newJSON()">New JSON</button>
+
+    <input type="text" id="searchBox" placeholder="Search..." onkeyup="searchJSON()">
+
+</div>
+
+<div class="container">
+
+    <textarea id="inputArea" placeholder="Paste JSON here..."></textarea>
+
+    <pre id="outputArea"></pre>
+
+</div>
+
+<div class="bottom">
+
+    <div id="status"></div>
+    <div id="stats"></div>
+
+</div>
+
+<div class="tree-section">
+    <h3>Tree View</h3>
+    <div id="treeView"></div>
+</div>
+
+<script src="js/json-utils.js"></script>
+<script src="js/file-handler.js"></script>
+<script src="js/tree-view.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
