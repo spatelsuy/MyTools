@@ -40,13 +40,36 @@ function validateJSON() {
 function autoFixJSON() {
     let text = getJSON();
 
+    let fixes = [];
+
+    // STEP 1: Remove trailing commas
+    let before = text;
+    text = text.replace(/,\s*}/g, "}");
+    text = text.replace(/,\s*]/g, "]");
+    if (before !== text) fixes.push("Removed trailing commas");
+
+    // STEP 2: Convert single quotes to double quotes (safe mode)
+    before = text;
     text = text.replace(/'/g, '"');
-    text = text.replace(/,\s*}/g, '}');
-    text = text.replace(/,\s*]/g, ']');
+    if (before !== text) fixes.push("Replaced single quotes");
 
-    document.getElementById("inputArea").value = text;
+    // STEP 3: Fix unquoted keys (basic version)
+    // example: { name: "John" } → { "name": "John" }
+    before = text;
+    text = text.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+    if (before !== text) fixes.push("Quoted object keys");
 
-    setStatus("Auto Fix Applied ⚡");
+    // STEP 4: Try parsing
+    try {
+        const obj = JSON.parse(text);
+
+        document.getElementById("inputArea").value =
+            JSON.stringify(obj, null, 4);
+
+        setStatus("Auto Fix Successful ✔ (" + fixes.join(", ") + ")");
+    } catch (e) {
+        setStatus("Auto Fix Failed ✖ - JSON too corrupted");
+    }
 }
 
 function searchJSON() {
