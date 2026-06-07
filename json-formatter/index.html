@@ -1,39 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>SPBasic JSON Formatter</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>SPBasic JSON Workbench</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-<div class="top-bar">
-    <h2>SPBasic JSON Formatter</h2>
-</div>
+<header>
+    <h2>SPBasic JSON Workbench</h2>
+</header>
 
 <div class="toolbar">
-
-    <input type="file" id="fileInput" />
+    <input type="file" id="fileInput">
 
     <button onclick="formatJSON()">Format</button>
     <button onclick="minifyJSON()">Minify</button>
     <button onclick="validateJSON()">Validate</button>
-    <button onclick="autoFixJSON()">Auto Fix</button>
+    <button onclick="autoFix('safe')">Safe Fix</button>
+    <button onclick="autoFix('smart')">Smart Fix</button>
+    <button onclick="autoFix('aggressive')">Aggressive Fix</button>
     <button onclick="downloadJSON()">Download</button>
-    <button onclick="newJSON()">New JSON</button>
+    <button onclick="newJSON()">New</button>
 
-    <input type="text" id="searchBox" placeholder="Search..." onkeyup="searchJSON()">
-
+    <input id="search" placeholder="Search..." onkeyup="searchJSON()">
 </div>
 
 <div class="container">
 
-    <textarea id="inputArea" placeholder="Paste JSON here..."></textarea>
+    <textarea id="input"></textarea>
 
-    <pre id="outputArea"></pre>
+    <pre id="output"></pre>
 
 </div>
 
@@ -44,14 +44,17 @@
 
 </div>
 
-<div class="tree-section">
+<div class="tree">
     <h3>Tree View</h3>
-    <div id="treeView"></div>
+    <div id="tree"></div>
 </div>
 
-<script src="js/json-utils.js"></script>
-<script src="js/file-handler.js"></script>
-<script src="js/tree-view.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/fixer.js"></script>
+<script src="js/tree.js"></script>
+<script src="js/analyzer.js"></script>
+<script src="js/file.js"></script>
+<script src="js/engine.js"></script>
 <script src="js/app.js"></script>
 
 </body>
