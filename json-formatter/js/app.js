@@ -31,13 +31,22 @@ function validateJSON() {
     setStatus(parsed.ok ? "Valid JSON ✔" : parsed.error);
 }
 
-function autoFix(mode) {
+function runAutoFix(mode) {
 
-    const result = autoFix(getInput(), mode);
+    const result = repairJSON(
+        getInput(),
+        mode
+    );
 
-    document.getElementById("input").value = result.text;
+    document.getElementById("input").value =
+        result.text;
 
-    setStatus("Auto Fix (" + mode + ") → " + result.fixes.join(", "));
+    setStatus(
+        "Auto Fix (" +
+        mode +
+        ") → " +
+        result.fixes.join(", ")
+    );
 }
 
 function newJSON() {
