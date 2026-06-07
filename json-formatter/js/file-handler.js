@@ -1,0 +1,22 @@
+document.getElementById("fileInput").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        document.getElementById("inputArea").value = event.target.result;
+    };
+
+    reader.readAsText(file);
+});
+
+function downloadJSON() {
+    const data = document.getElementById("outputArea").textContent;
+
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "data.json";
+    a.click();
+}
