@@ -1,0 +1,68 @@
+body {
+    font-family: Arial;
+    margin: 0;
+    background: #f4f6f9;
+}
+
+.top-bar {
+    background: #1f2937;
+    color: white;
+    padding: 15px;
+}
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+}
+
+.toolbar button {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: #f9fafb;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.toolbar input {
+    padding: 8px;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 10px;
+}
+
+textarea {
+    height: 400px;
+    width: 100%;
+    padding: 10px;
+    font-family: monospace;
+}
+
+pre {
+    background: #111827;
+    color: #10b981;
+    padding: 10px;
+    overflow: auto;
+}
+
+.bottom {
+    padding: 10px;
+    background: #fff;
+}
+
+.tree-section {
+    padding: 10px;
+    background: white;
+}
+
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+}
