@@ -49,7 +49,7 @@ function autoFixJSON() {
     // STEP 2: Try direct parse first
     try {
         const obj = JSON.parse(text);
-        alert("1 = " + JSON.stringify(obj, null, 4));
+        alert("1 = " + text);
         document.getElementById("inputArea").value =
             JSON.stringify(obj, null, 4);
 
@@ -100,7 +100,7 @@ function autoFixJSON() {
     // STEP 5: FINAL PARSE
     try {
         const obj = JSON.parse(text);
-        alert("2 = " + JSON.stringify(obj, null, 4));
+        alert("2 = " + text);
         document.getElementById("inputArea").value =
             JSON.stringify(obj, null, 4);
 
