@@ -1,33 +1,29 @@
 body {
     font-family: Arial;
     margin: 0;
-    background: #f4f6f9;
+    background: #f5f6fa;
 }
 
-.top-bar {
-    background: #1f2937;
+header {
+    background: #111827;
     color: white;
-    padding: 15px;
+    padding: 12px;
 }
 
 .toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     padding: 10px;
     background: white;
 }
 
-.toolbar button {
-    padding: 8px 12px;
+button {
+    padding: 6px 10px;
     border: 1px solid #ddd;
     background: #f9fafb;
     cursor: pointer;
     border-radius: 5px;
-}
-
-.toolbar input {
-    padding: 8px;
 }
 
 .container {
@@ -38,25 +34,24 @@ body {
 }
 
 textarea {
-    height: 400px;
-    width: 100%;
-    padding: 10px;
+    height: 420px;
     font-family: monospace;
+    padding: 10px;
 }
 
 pre {
-    background: #111827;
-    color: #10b981;
+    background: #0f172a;
+    color: #22c55e;
     padding: 10px;
     overflow: auto;
 }
 
 .bottom {
     padding: 10px;
-    background: #fff;
+    background: white;
 }
 
-.tree-section {
+.tree {
     padding: 10px;
     background: white;
 }
