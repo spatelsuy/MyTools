@@ -6,7 +6,7 @@ function autoFix(text, mode = "safe") {
     text = text.replace(/,\s*}/g, "}");
     text = text.replace(/,\s*]/g, "]");
     text = text.replace(/'/g, '"');
-
+    alert(text);
     if (mode === "safe") {
         return { text, fixes };
     }
@@ -45,6 +45,6 @@ function autoFix(text, mode = "safe") {
             fixes.push("Closed missing bracket");
         }
     }
-
+    alert("Fixed = " + text);
     return { text, fixes };
 }
