@@ -1,4 +1,4 @@
-function autoFix(text, mode = "safe") {
+function repairJSON(text, mode = "safe") {
 
     let fixes = [];
 
