@@ -1,6 +1,6 @@
 // Initialize PDF.js worker // redeploy
 //pdfjsLib.GlobalWorkerOptions.workerSrc = 'LIB/pdf.worker.min.js';
-import * as pdfjsLib from './LIB/pdf.min.mjs';
+import * as pdfjsLib from './LIB/pdf.min.mjs'; // included ./
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = './LIB/pdf.worker.min.mjs';
 
