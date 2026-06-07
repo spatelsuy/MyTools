@@ -38,28 +38,65 @@ function validateJSON() {
 }
 
 function autoFixJSON() {
-    let text = getJSON();
-
+    let text = getJSON().trim();
     let fixes = [];
 
-    // STEP 1: Remove trailing commas
-    let before = text;
-    text = text.replace(/,\s*}/g, "}");
-    text = text.replace(/,\s*]/g, "]");
-    if (before !== text) fixes.push("Removed trailing commas");
-
-    // STEP 2: Convert single quotes to double quotes (safe mode)
-    before = text;
+    // STEP 1: Basic cleanup
     text = text.replace(/'/g, '"');
-    if (before !== text) fixes.push("Replaced single quotes");
+    text = text.replace(/,\s*}/g, '}');
+    text = text.replace(/,\s*]/g, ']');
 
-    // STEP 3: Fix unquoted keys (basic version)
-    // example: { name: "John" } → { "name": "John" }
-    before = text;
-    text = text.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
-    if (before !== text) fixes.push("Quoted object keys");
+    // STEP 2: Try direct parse first
+    try {
+        const obj = JSON.parse(text);
+        document.getElementById("inputArea").value =
+            JSON.stringify(obj, null, 4);
 
-    // STEP 4: Try parsing
+        setStatus("Auto Fix Successful ✔ (No repair needed)");
+        return;
+    } catch (e) {
+        fixes.push("Initial parse failed - starting repair");
+    }
+
+    // STEP 3: STRUCTURE REPAIR (STACK BALANCING)
+    let stack = [];
+
+    let inString = false;
+    let escaped = false;
+
+    for (let char of text) {
+
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+
+        if (char === "\\") {
+            escaped = true;
+            continue;
+        }
+
+        if (char === '"') {
+            inString = !inString;
+            continue;
+        }
+
+        if (inString) continue;
+
+        if (char === '{') stack.push('}');
+        else if (char === '[') stack.push(']');
+        else if (char === '}' || char === ']') {
+            stack.pop();
+        }
+    }
+
+    // STEP 4: AUTO CLOSE MISSING BRACKETS
+    while (stack.length > 0) {
+        text += stack.pop();
+        fixes.push("Added missing closing bracket");
+    }
+
+    // STEP 5: FINAL PARSE
     try {
         const obj = JSON.parse(text);
 
@@ -68,7 +105,7 @@ function autoFixJSON() {
 
         setStatus("Auto Fix Successful ✔ (" + fixes.join(", ") + ")");
     } catch (e) {
-        setStatus("Auto Fix Failed ✖ - JSON too corrupted");
+        setStatus("Auto Fix Failed ✖ - Cannot repair structure safely");
     }
 }
 
