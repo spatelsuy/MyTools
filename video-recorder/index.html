@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Recorder</title>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    background: #f5f5f5;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 80%;
+    margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+    }
+}
+
+h3 {
+    text-align: center;
+}
+
+
+/* CENTER WRAPPER (important) */
+.video-box {
+    width: 50%;
+    aspect-ratio: 16 / 9;
+    background: black;
+    border-radius: 10px;
+    overflow: hidden;
+
+    margin: 20px auto; /* centers horizontally */
+}
+
+/* VIDEO MUST FILL BOX */
+.video-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+    .video-box {
+        width: 95%;
+    }
+}
+
+.controls {
+    display: flex;
+    justify-content: space-around;
+    margin: 10px 0;
+}
+
+button {
+    flex: 1;
+    margin: 3px;
+    padding: 8px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+}
+
+#startBtn { background: #4CAF50; color: white; }
+#pauseBtn { background: #ff9800; color: white; }
+#stopBtn  { background: #f44336; color: white; }
+
+#status {
+    text-align: center;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+.card {
+    background: white;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.meta {
+    font-size: 11px;
+    color: #444;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h3>🎥 Video Recorder</h3>
+
+<div class="video-box">
+    <video id="preview" autoplay muted playsinline></video>
+</div>
+
+<div id="status">Ready</div>
+
+<div class="controls">
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn" disabled>Pause</button>
+    <button id="stopBtn" disabled>Stop</button>
+</div>
+
+<h4 style="text-align:center;">History</h4>
+<div id="history"></div>
+
+</div>
+
+<script>
+
+/* =========================
+   STATE
+========================= */
+
+let mediaRecorder;
+let stream;
+let chunks = [];
+
+let recordings = [];
+let recordingIndex = 0;
+
+let seconds = 0;
+let timerInterval = null;
+let isPaused = false;
+
+/* =========================
+   UI
+========================= */
+
+const preview = document.getElementById("preview");
+const status = document.getElementById("status");
+const history = document.getElementById("history");
+
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const stopBtn = document.getElementById("stopBtn");
+
+startBtn.onclick = startRecording;
+pauseBtn.onclick = togglePause;
+stopBtn.onclick = stopRecording;
+
+/* =========================
+   RECORDER
+========================= */
+
+function createRecorder(stream) {
+
+    const recorder = new MediaRecorder(stream);
+
+    recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+            chunks.push(e.data);
+        }
+    };
+
+    recorder.onstop = saveRecording;
+
+    return recorder;
+}
+
+/* =========================
+   START
+========================= */
+
+async function startRecording() {
+
+    stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    });
+
+    preview.srcObject = stream;
+
+    chunks = [];
+    seconds = 0;
+    isPaused = false;
+
+    mediaRecorder = createRecorder(stream);
+    mediaRecorder.start();
+
+    startTimer();
+
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    stopBtn.disabled = false;
+
+    status.innerText = "🔴 Recording...";
+}
+
+/* =========================
+   PAUSE / RESUME
+========================= */
+
+function togglePause() {
+
+    if (mediaRecorder.state === "recording") {
+
+        mediaRecorder.pause();
+        pauseTimer();
+        pauseBtn.innerText = "Resume";
+
+    } else if (mediaRecorder.state === "paused") {
+
+        mediaRecorder.resume();
+        resumeTimer();
+        pauseBtn.innerText = "Pause";
+    }
+}
+
+/* =========================
+   STOP
+========================= */
+
+function stopRecording() {
+
+    mediaRecorder.stop();
+    stopTimer();
+
+    stream.getTracks().forEach(t => t.stop());
+
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+
+    pauseBtn.innerText = "Pause";
+    status.innerText = "Processing...";
+}
+
+/* =========================
+   SAVE
+========================= */
+
+function saveRecording() {
+
+    const blob = new Blob(chunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+
+    const rec = {
+        id: Date.now(),
+        name: "Video " + (++recordingIndex),
+        blob,
+        url,
+        size: blob.size,
+        duration: seconds,
+        createdAt: new Date()
+    };
+
+    recordings.push(rec);
+
+    renderHistory();
+
+    status.innerText = "Saved ✔";
+}
+
+/* =========================
+   HISTORY
+========================= */
+
+function renderHistory() {
+
+    history.innerHTML = "";
+
+    recordings.forEach(r => {
+
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+            <b>${r.name}</b>
+
+            <div class="meta">
+                Size: ${formatSize(r.size)} |
+                Duration: ${formatDuration(r.duration)} |
+                ${r.createdAt.toLocaleString()}
+            </div>
+			<div class="video-box"><video controls src="${r.url}"></video></div>
+			<br>
+            <button onclick="downloadFile('${r.url}')">Download</button>
+            <button onclick="deleteRec(${r.id})">Delete</button>
+        `;
+
+        history.appendChild(div);
+    });
+}
+
+/* =========================
+   DOWNLOAD
+========================= */
+
+function downloadFile(url) {
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "video.webm";
+    a.click();
+}
+
+/* =========================
+   DELETE
+========================= */
+
+function deleteRec(id) {
+
+    const i = recordings.findIndex(r => r.id === id);
+
+    if (i !== -1) {
+        URL.revokeObjectURL(recordings[i].url);
+        recordings.splice(i, 1);
+        renderHistory();
+    }
+}
+
+/* =========================
+   TIMER
+========================= */
+
+function startTimer() {
+
+    timerInterval = setInterval(() => {
+
+        if (!isPaused) {
+            seconds++;
+            status.innerText = `🔴 Recording... ${formatDuration(seconds)}`;
+        }
+
+    }, 1000);
+}
+
+function pauseTimer() {
+    isPaused = true;
+}
+
+function resumeTimer() {
+    isPaused = false;
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+}
+
+/* =========================
+   HELPERS
+========================= */
+
+function formatSize(bytes) {
+
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024)
+        return (bytes / 1024).toFixed(1) + " KB";
+
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+function formatDuration(sec) {
+
+    let min = Math.floor(sec / 60);
+    sec = sec % 60;
+
+    return `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+}
+
+</script>
+
+</body>
+</html>
