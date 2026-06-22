@@ -1,156 +1,286 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SPBasic Tools</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body{
-            font-family:Arial;
-            margin:0;
-            background:#f5f5f5;
-        }
+<meta charset="UTF-8">
+<title>SPBasic Tools — Fast, free browser tools</title>
+<meta name="description" content="Fast, free browser-based tools for productivity, developers, security, AI and everyday work. No installs, no signups.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    :root{
+        --bg:#f7f7f5;
+        --surface:#ffffff;
+        --ink:#16181c;
+        --muted:#6b7177;
+        --line:#e6e5e1;
+        --accent:#1f6f54;
+        --accent-soft:#e7f2ed;
+        --radius:10px;
+    }
 
-        .hero{
-            text-align:center;
-            padding:60px 20px 30px;
-            background:white;
-        }
+    *{ box-sizing:border-box; }
 
-        .hero h1{
-            margin:0;
-            font-size:42px;
-        }
+    body{
+        font-family:"Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+        margin:0;
+        background:var(--bg);
+        color:var(--ink);
+        -webkit-font-smoothing:antialiased;
+    }
 
-        .hero p{
-            color:#666;
-            margin-top:15px;
-            font-size:18px;
-        }
+    a{ color:inherit; }
 
-        .search-box{
-            margin-top:25px;
-        }
+    /* ---------- Header ---------- */
+    header{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:18px 32px;
+        background:var(--surface);
+        border-bottom:1px solid var(--line);
+    }
+    .logo{
+        font-weight:700;
+        font-size:18px;
+        letter-spacing:-0.02em;
+        text-decoration:none;
+        display:flex;
+        align-items:center;
+        gap:8px;
+    }
+    .logo span{
+        display:inline-block;
+        width:10px;
+        height:10px;
+        border-radius:3px;
+        background:var(--accent);
+    }
+    nav a{
+        text-decoration:none;
+        color:var(--muted);
+        font-size:14px;
+        margin-left:24px;
+    }
+    nav a:hover{ color:var(--ink); }
 
-        .search-box input{
-            width:320px;
-            max-width:90%;
-            padding:12px;
-            border:1px solid #ccc;
-            border-radius:8px;
-        }
+    /* ---------- Hero ---------- */
+    .hero{
+        text-align:center;
+        padding:64px 20px 36px;
+        background:var(--surface);
+    }
+    .hero h1{
+        margin:0;
+        font-size:40px;
+        letter-spacing:-0.03em;
+    }
+    .hero p{
+        color:var(--muted);
+        margin:14px auto 0;
+        font-size:17px;
+        max-width:520px;
+        line-height:1.5;
+    }
 
-        .tools{
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-            gap:20px;
-            padding:40px;
-        }
+    .search-box{
+        margin:28px auto 0;
+        max-width:420px;
+        position:relative;
+    }
+    .search-box input{
+        width:100%;
+        padding:13px 16px 13px 40px;
+        border:1px solid var(--line);
+        border-radius:999px;
+        font-size:15px;
+        background:var(--bg);
+        outline:none;
+        transition:border-color .15s, box-shadow .15s;
+    }
+    .search-box input:focus{
+        border-color:var(--accent);
+        box-shadow:0 0 0 3px var(--accent-soft);
+        background:var(--surface);
+    }
+    .search-box::before{
+        content:"";
+        position:absolute;
+        left:15px;
+        top:50%;
+        width:14px;
+        height:14px;
+        transform:translateY(-50%);
+        border:2px solid var(--muted);
+        border-radius:50%;
+        box-sizing:border-box;
+    }
+    .search-box::after{
+        content:"";
+        position:absolute;
+        left:25px;
+        top:50%;
+        width:6px;
+        height:2px;
+        background:var(--muted);
+        transform:translateY(7px) rotate(45deg);
+    }
 
-        .tool-card{
-            background:white;
-            padding:20px;
-            height: 125px;
-            border-radius:12px;
-            box-shadow:0 2px 6px rgba(0,0,0,0.1);
-            cursor:pointer;
-            transition:0.2s;
-        }
+    /* ---------- Tools grid ---------- */
+    .tools{
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+        gap:18px;
+        padding:40px 32px;
+        max-width:1100px;
+        margin:0 auto;
+    }
+    .tool-link{
+        text-decoration:none;
+        color:inherit;
+        display:block;
+        border-radius:var(--radius);
+    }
+    .tool-link:focus-visible .tool-card,
+    .tool-link:hover .tool-card{
+        border-color:var(--accent);
+        box-shadow:0 6px 16px rgba(0,0,0,0.06);
+        transform:translateY(-2px);
+    }
+    .tool-card{
+        background:var(--surface);
+        padding:20px;
+        min-height:118px;
+        border-radius:var(--radius);
+        border:1px solid var(--line);
+        transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .tool-card h3{
+        margin:0 0 6px;
+        font-size:16px;
+        letter-spacing:-0.01em;
+    }
+    .tool-card p{
+        margin:0;
+        color:var(--muted);
+        font-size:14px;
+        line-height:1.45;
+    }
+    .empty-state{
+        display:none;
+        text-align:center;
+        color:var(--muted);
+        padding:50px 20px;
+        font-size:15px;
+    }
 
-        .tool-card:hover{
-            transform:translateY(-3px);
-        }
+    /* ---------- Footer ---------- */
+    footer{
+        border-top:1px solid var(--line);
+        padding:28px 32px;
+        text-align:center;
+        color:var(--muted);
+        font-size:13px;
+    }
+    footer a{
+        color:var(--muted);
+        text-decoration:none;
+        margin:0 8px;
+    }
+    footer a:hover{ color:var(--accent); }
 
-        .tool-card h3{
-            margin-top:0;
-        }
-        /* Mobile */
-        @media (max-width: 768px){
-        
-            .hero{
-                padding:40px 15px 20px;
-            }
-        
-            .hero h1{
-                font-size:32px;
-            }
-        
-            .hero p{
-                font-size:16px;
-            }
-        
-            .tools{
-                grid-template-columns:1fr;
-                padding:20px;
-            }
-        
-            .tool-card{
-                height:auto;
-                min-height:125px;
-            }
-        }        
-    </style>
+    /* ---------- Mobile ---------- */
+    @media (max-width: 768px){
+        header{ padding:14px 18px; }
+        nav a{ margin-left:14px; font-size:13px; }
+        .hero{ padding:40px 16px 24px; }
+        .hero h1{ font-size:28px; }
+        .hero p{ font-size:15px; }
+        .tools{ grid-template-columns:1fr; padding:24px 18px; gap:14px; }
+        .tool-card{ min-height:auto; }
+    }
+</style>
 </head>
-
 <body>
 
-    <div class="hero">
+<header>
+    <a href="/" class="logo"><span></span>SPBasic Tools</a>
+    <nav>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+    </nav>
+</header>
 
-        <h1>SPBasic Tools</h1>
-
-        <p>
-            Fast, free browser-based tools for productivity,
-            developers, security, AI and everyday work.
-        </p>
-
-        <div class="search-box">
-            <input
-                type="text"
-                placeholder="Search tools..."
-            >
-        </div>
-
+<div class="hero">
+    <h1>SPBasic Tools</h1>
+    <p>Fast, free browser tools for productivity, developers, security, AI and everyday work. No installs, no signups.</p>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search tools..." aria-label="Search tools">
     </div>
+</div>
 
-    <div class="tools">
-
-    <a href="/PDFMerger" class="tool-link">
+<div class="tools" id="toolsGrid">
+    <a href="/PDFMerger" class="tool-link" data-name="pdf merger combine files">
         <div class="tool-card">
             <h3>PDF Merger</h3>
             <p>Combine multiple PDF files instantly.</p>
         </div>
     </a>
-    <a href="/image-optimizer" class="tool-link">
+    <a href="/image-optimizer" class="tool-link" data-name="image optimizer convert shrink resize">
         <div class="tool-card">
             <h3>Image Optimizer</h3>
             <p>Convert and shrink high resolution pictures locally.</p>
         </div>
     </a>
-    <a href="/audio-recorder" class="tool-link">
+    <a href="/audio-recorder" class="tool-link" data-name="audio recorder microphone">
         <div class="tool-card">
             <h3>Audio Recorder</h3>
-            <p>A browser-based tool for recording, merging, and downloading microphone audio.</p>
+            <p>Record, merge, and download microphone audio in your browser.</p>
         </div>
-    </a>        
-    <a href="/audio-editor" class="tool-link">
+    </a>
+    <a href="/audio-editor" class="tool-link" data-name="audio editor cut trim">
         <div class="tool-card">
             <h3>Audio Editor</h3>
-            <p>Listen to your track and capture real-time player timestamps to compile custom cuts.</p>
+            <p>Listen to your track and capture real-time timestamps to compile custom cuts.</p>
         </div>
     </a>
-    <a href="/video-recorder" class="tool-link">
+    <a href="/video-recorder" class="tool-link" data-name="video recorder camera">
         <div class="tool-card">
             <h3>Video Recorder</h3>
-            <p>A browser-based tool for recording, and downloading camera video with audio.</p>
-        </div>
-    </a>          
-    <a href="/qrcode-generator" class="tool-link">
-        <div class="tool-card">
-            <h3>QR Code Generator</h3>
-            <p>Generate QR codes instantly from text, URLs, and other data with a single click.</p>
+            <p>Record and download camera video with audio, right in your browser.</p>
         </div>
     </a>
+    <a href="/qrcode-generator" class="tool-link" data-name="qr code generator">
+        <div class="tool-card">
+            <h3>QR Code Generator</h3>
+            <p>Generate QR codes instantly from text, URLs, and other data.</p>
+        </div>
+    </a>
+</div>
 
-    </div>
+<p class="empty-state" id="emptyState">No tools match your search.</p>
+
+<footer>
+    &copy; 2026 SPBasic Tools &middot;
+    <a href="/privacy">Privacy</a> &middot;
+    <a href="/about">About</a> &middot;
+    <a href="/contact">Contact</a>
+</footer>
+
+<script>
+    const input = document.getElementById('searchInput');
+    const cards = Array.from(document.querySelectorAll('.tool-link'));
+    const emptyState = document.getElementById('emptyState');
+
+    input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        let visibleCount = 0;
+        cards.forEach(card => {
+            const match = card.dataset.name.includes(q);
+            card.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+        });
+        emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+    });
+</script>
 
 </body>
 </html>
