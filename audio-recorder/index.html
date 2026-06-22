@@ -251,31 +251,40 @@ pauseBtn.onclick = togglePause;
 stopBtn.onclick = stopRecording;
 a2t.onclick = transcribe;
 
+
 function transcribe(){
-    const userName = "SunilPK";
-    const apiUrl = "https://decode-cri.vercel.app/a2t/transcribe";	
-    // RETURN the fetch promise
-    return fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/webm" },
-        body: JSON.stringify({
-            user_name: userName,
-            audio_data: recordings[0]
-        })
-    })
-    .then(async response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-		const data = await response.json();        
-		return data;
-    })
-    .catch(err => {
-        console.error("DS Classification Error:", err);
-       alert(err);
-        return "Error: " + err.message;  // Still return something
-    });	   
+  const apiUrl = "https://decode-cri.vercel.app/a2t/transcribe";
+  // 1. Create a FormData container
+  const formData = new FormData();
+  
+  // 2. Append the normal string data
+  formData.append("user_name", "SunilK");
+  
+  // 3. Append the raw audio recording (and give it a filename extension)
+  formData.append("file", recordings[0].blob, "recording.webm");
+
+  try {
+    // 4. Send the request without setting a "Content-Type" header manually!
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: formData // The browser handles headers automatically here
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server responded with status ${response.status}`);
+    }
+    const data = await response.json();
+	alert(data.text);
+    console.log("Transcribed text received:", data.text);
+    return data.text;
+
+  } catch (error) {
+	alert(error);
+    console.error("Error uploading audio:", error);
+  }
 }
+	
+
    
 /* =========================
    CREATE RECORDER
