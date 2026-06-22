@@ -252,7 +252,7 @@ stopBtn.onclick = stopRecording;
 a2t.onclick = transcribe;
 
 
-function transcribe(){
+async function transcribe(){
   const apiUrl = "https://decode-cri.vercel.app/a2t/transcribe";
   // 1. Create a FormData container
   const formData = new FormData();
