@@ -309,7 +309,13 @@ function createRecorder(stream) {
 ========================= */
 async function startRecording() {
     try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream = await navigator.mediaDevices.getUserMedia({ 
+  			audio: {
+    			noiseSuppression: true,  // Strips out background hums/hiss
+    			echoCancellation: true,  // Prevents echo and feedback
+    			autoGainControl: true    // Keeps your voice volume steady
+  			} 
+		});
         audioChunks = [];
         liveSize = 0;
         startTime = Date.now();
