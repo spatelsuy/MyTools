@@ -2,119 +2,215 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Voice Recorder</title>
 
 <style>
 /* =========================
-   RESPONSIVE LAYOUT FIX
+   MODERN LIGHT PROFESSIONAL UI
 ========================= */
 
+:root {
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --primary: #0284c7;
+    --primary-hover: #0369a1;
+    --success: #16a34a;
+    --success-hover: #15803d;
+    --warning: #ea580c;
+    --warning-hover: #c2410c;
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --border: #e2e8f0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+
 body {
-    font-family: Arial;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
-    background: #f5f5f5;
+    background: var(--bg-color);
+    color: var(--text-main);
     display: flex;
     justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-/* Desktop: 60% width */
-.container {
-    width: 60%;
-    margin: 20px 0;
-}
-
-.history-container {
-    width: 90%;
-    margin: 20px 0;
-}	
-
-/* Mobile: 100% with margin */
-@media (max-width: 768px) {
-    .container {
-        width: 95%;
-    }
-}
-
-h2 {
-    text-align: center;
-}
-
-.controls {
+/* Unified Main Wrapper */
+.app-wrapper {
+    width: 100%;
+    max-width: 500px; /* Snug width looks sharper */
     display: flex;
-    justify-content: space-around;
-    margin: 15px 0;
+    flex-direction: column;
+    gap: 20px;
 }
 
-button {
-    flex: 1;
-    margin: 3px;
-    padding: 8px;
-    font-size: 12px;
-    border: none;
-    border-radius: 4px;
+.container, .history-container {
+    width: 100%; /* Force standard expansion within the layout wrapper */
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
 
-#startBtn { background: #4CAF50; color: white; }
-#pauseBtn { background: #ff9800; color: white; }
-#stopBtn  { background: #f44336; color: white; }
+h3, h4 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
 
+h3 { font-size: 22px; text-align: center; color: var(--text-main); }
+h4 { font-size: 16px; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+/* Status Text */
 #status {
     text-align: center;
-    margin: 10px 0;
-    font-weight: bold;
+    margin: 16px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
+/* Visualization Canvas */
 canvas {
     width: 100%;
-    height: 120px;
-    background: black;
-    border-radius: 10px;
+    height: 100px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: block;
+}
+
+/* Controls Alignment */
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Modern Button Base Styling */
+button {
+    flex: 1;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Dynamic Action Buttons */
+#startBtn { background: var(--success); color: white; }
+#startBtn:hover { background: var(--success-hover); }
+
+#pauseBtn { background: var(--warning); color: white; }
+#pauseBtn:hover { background: var(--warning-hover); }
+
+#stopBtn  { background: var(--danger); color: white; }
+#stopBtn:hover { background: var(--danger-hover); }
+
+/* History Cards */
+#history {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
 }
 
 .card {
-    background: white;
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 14px;
+    border-radius: 12px;
+}
+
+.card-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--text-main);
 }
 
 .meta {
-    font-size: 10px;
-    color: #444;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
 }
 
+/* Native Audio Player Styling overrides */
 audio {
     width: 100%;
-    margin-top: 5px;
+    margin-bottom: 12px;
+    border-radius: 8px;
 }
+
+/* History Card Action Layout */
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.card-actions button {
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+.btn-download { background: var(--primary); color: white; }
+.btn-download:hover { background: var(--primary-hover); }
+
+.btn-delete { background: transparent; border: 1px solid #cbd5e1; color: var(--danger); }
+.btn-delete:hover { background: #fee2e2; border-color: var(--danger); }
+
 </style>
 </head>
 
 <body>
 
-<div class="container">
-	<h3 style="text-align: center;">🎤 Voice Recorder</h3>
-	<canvas id="waveCanvas"></canvas>
-	<div id="status">Ready</div>
-	<div class="controls">
-    	<button id="startBtn">Start</button>
-    	<button id="pauseBtn" disabled>Pause</button>
-    	<button id="stopBtn" disabled>Stop</button>
-	</div>
-</div>
-<div class="history-container">
-	<h4 style="text-align: center;">History</h4>
-	<div id="history"></div>	
-</div>
+<div class="app-wrapper">
+    <!-- Recorder Interface -->
+    <div class="container">
+        <h3>Voice Recorder</h3>
+        <canvas id="waveCanvas"></canvas>
+        <div id="status">Ready</div>
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn" disabled>Pause</button>
+            <button id="stopBtn" disabled>Stop</button>
+        </div>
+    </div>
 
+    <!-- Storage / Logs Section -->
+    <div class="history-container">
+        <h4>History</h4>
+        <div id="history"></div>	
+    </div>
+</div>
 
 <script>
-
 /* =========================
    GLOBAL STATE
 ========================= */
-
 let mediaRecorder;
 let audioChunks = [];
 let stream;
@@ -129,18 +225,15 @@ let startTime;
 let timerInterval = null;
 let seconds = 0;
 let isPaused = false;
-let estimatedBitrate = 50 * 1024; //50 KB /s convered to bytes
-
+let estimatedBitrate = 50 * 1024; 
 
 let liveSize = 0;
 let uiInterval;
-
 let recordings = [];
 
 /* =========================
    UI ELEMENTS
 ========================= */
-
 const canvas = document.getElementById("waveCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -155,17 +248,14 @@ pauseBtn.onclick = togglePause;
 stopBtn.onclick = stopRecording;
 
 /* =========================
-   CREATE RECORDER (FIX #2)
+   CREATE RECORDER
 ========================= */
-
 function createRecorder(stream) {
-
     const recorder = new MediaRecorder(stream);
 
     recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
             audioChunks.push(e.data);
-            // FIX #3: no need for reduce()
             liveSize += e.data.size;
         }
     };
@@ -177,45 +267,41 @@ function createRecorder(stream) {
 /* =========================
    START
 ========================= */
-
 async function startRecording() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        liveSize = 0;
+        startTime = Date.now();
 
-    stream = await navigator.mediaDevices.getUserMedia({
-        audio: true
-    });
+        setupWaveform(stream);
 
-    audioChunks = [];
-    liveSize = 0;
+        mediaRecorder = createRecorder(stream);
+        mediaRecorder.start();
+        startTimer();
+        uiInterval = setInterval(updateUI, 300);
 
-    startTime = Date.now();
-
-    setupWaveform(stream);
-
-    mediaRecorder = createRecorder(stream);
-    mediaRecorder.start();
-	startTimer();
-    uiInterval = setInterval(updateUI, 300);
-
-    startBtn.disabled = true;
-    pauseBtn.disabled = false;
-    stopBtn.disabled = false;
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+    } catch (err) {
+        status.innerText = "Microphone access denied";
+        console.error(err);
+    }
 }
 
 /* =========================
    PAUSE / RESUME
 ========================= */
-
 function togglePause() {
-
     if (mediaRecorder.state === "recording") {
-
         mediaRecorder.pause();
-		pauseTimer();
+        pauseTimer();
         pauseBtn.innerText = "Resume";
-
+        status.innerText = `⏸ Paused • ${formatDuration(seconds)}`;
     } else if (mediaRecorder.state === "paused") {
         mediaRecorder.resume();
-		resumeTimer();
+        resumeTimer();
         pauseBtn.innerText = "Pause";
     }
 }
@@ -223,11 +309,9 @@ function togglePause() {
 /* =========================
    STOP
 ========================= */
-
 function stopRecording() {
-
     mediaRecorder.stop();
-	stopTimer();
+    stopTimer();
     clearInterval(uiInterval);
 
     startBtn.disabled = false;
@@ -241,19 +325,13 @@ function stopRecording() {
 /* =========================
    SAVE
 ========================= */
-
 function saveRecording() {
-
-    const blob = new Blob(audioChunks, {
-        type: "audio/webm"
-    });
-
+    const blob = new Blob(audioChunks, { type: "audio/webm" });
     const url = URL.createObjectURL(blob);
-
     const duration = seconds;
 
     const rec = {
-		name: "Recording " + (recordingIndex + 1),
+        name: "Recording " + (recordingIndex + 1),
         id: Date.now(),
         blob,
         url,
@@ -261,8 +339,7 @@ function saveRecording() {
         duration,
         createdAt: new Date()
     };
-	recordingIndex = recordingIndex + 1;
-
+    recordingIndex = recordingIndex + 1;
     recordings.push(rec);
 
     renderHistory();
@@ -270,41 +347,32 @@ function saveRecording() {
     stream.getTracks().forEach(t => t.stop());
     if (audioContext) audioContext.close();
 
-    status.innerText = "Saved ✔";
+    status.innerText = "Saved Successfully ✓";
 }
 
 /* =========================
-   LIVE UI UPDATE (FIX #3)
+   LIVE UI UPDATE
 ========================= */
-
 function updateUI() {
-
-    status.innerText =`🔴 Recording... ${formatDuration(seconds)}`;
-
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        status.innerText = `🔴 Recording... ${formatDuration(seconds)}`;
+    }
     drawWaveform();
 }
 
 /* =========================
    WAVEFORM
 ========================= */
-
 function setupWaveform(stream) {
-
-    audioContext = new AudioContext();
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
-
     source = audioContext.createMediaStreamSource(stream);
-
     source.connect(analyser);
-
     analyser.fftSize = 256;
-
-    dataArray =
-        new Uint8Array(analyser.frequencyBinCount);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
 }
 
 function drawWaveform() {
-
     if (!analyser) return;
 
     analyser.getByteTimeDomainData(dataArray);
@@ -312,11 +380,12 @@ function drawWaveform() {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
-    ctx.fillStyle = "black";
+    ctx.fillStyle = "#f1f5f9";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.strokeStyle = "#00ff88";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#334155";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
 
     ctx.beginPath();
 
@@ -324,9 +393,8 @@ function drawWaveform() {
     let x = 0;
 
     for (let i = 0; i < dataArray.length; i++) {
-
         let v = dataArray[i] / 128.0;
-        let y = v * canvas.height / 2;
+        let y = (v * canvas.height) / 2;
 
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -339,60 +407,50 @@ function drawWaveform() {
 }
 
 /* =========================
-   HISTORY
+   HISTORY RENDERING
 ========================= */
-
 function renderHistory() {
-
     history.innerHTML = "";
 
-    recordings.forEach((r) => {
+    if(recordings.length === 0) {
+        history.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">No recordings saved yet.</div>`;
+        return;
+    }
 
+    recordings.forEach((r) => {
         const div = document.createElement("div");
         div.className = "card";
 
         div.innerHTML = `
-            <b>${r.name}</b><br>
-
+            <div class="card-title">${r.name}</div>
             <div class="meta">
-                Size: ${formatSize(r.size)} | Duration: ${formatDuration(r.duration)} | Created: ${r.createdAt.toLocaleString()}
+                ${formatSize(r.size)} • ${formatDuration(r.duration)} • ${r.createdAt.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
             </div>
-
             <audio controls src="${r.url}"></audio>
-
-            <button onclick="downloadFile('${r.url}','webm')">WEBM</button>
-            <button onclick="deleteRec(${r.id})">Delete</button>
+            <div class="card-actions">
+                <button class="btn-download" onclick="downloadFile('${r.url}','webm')">Download WEBM</button>
+                <button class="btn-delete" onclick="deleteRec(${r.id})">Delete</button>
+            </div>
         `;
-
         history.appendChild(div);
     });
 }
 
 /* =========================
-   DOWNLOAD
+   DOWNLOAD & DELETE
 ========================= */
-
 function downloadFile(url, ext) {
-
     const a = document.createElement("a");
     a.href = url;
     a.download = `recording.${ext}`;
     a.click();
 }
 
-/* =========================
-   DELETE
-========================= */
-
 function deleteRec(id) {
-
     const i = recordings.findIndex(r => r.id === id);
-
     if (i !== -1) {
-
         URL.revokeObjectURL(recordings[i].url);
         recordings.splice(i, 1);
-
         renderHistory();
     }
 }
@@ -400,49 +458,37 @@ function deleteRec(id) {
 /* =========================
    HELPERS
 ========================= */
-
 function formatSize(bytes) {
-
     if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024)
-        return (bytes / 1024).toFixed(1) + " KB";
-
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
     return (bytes / (1024 * 1024)).toFixed(2) + " MB";
 }
 
 function formatDuration(sec) {
-
     let min = Math.floor(sec / 60);
     sec = sec % 60;
-
     return `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
 }
-function startTimer() {
 
+function startTimer() {
     seconds = 0;
     isPaused = false;
-
     timerInterval = setInterval(() => {
-
         if (!isPaused) {
             seconds++;
         }
-
     }, 1000);
 }
 
-function pauseTimer() {
-    isPaused = true;
-}
-function resumeTimer() {
-    isPaused = false;
-}
+function pauseTimer() { isPaused = true; }
+function resumeTimer() { isPaused = false; }
 function stopTimer() {
-
     clearInterval(timerInterval);
     timerInterval = null;
 }
 
+// Initial empty state call
+renderHistory();
 </script>
 
 </body>
