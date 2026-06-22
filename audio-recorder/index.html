@@ -205,6 +205,7 @@ audio {
         <h4>History</h4>
         <div id="history"></div>	
     </div>
+   <button id="a2t">A2T</button>
 </div>
 
 <script>
@@ -243,10 +244,39 @@ const stopBtn = document.getElementById("stopBtn");
 const status = document.getElementById("status");
 const history = document.getElementById("history");
 
+const a2t = document.getElementById("a2t");
+
 startBtn.onclick = startRecording;
 pauseBtn.onclick = togglePause;
 stopBtn.onclick = stopRecording;
+a2t.onclick = transcribe;
 
+function transcribe(){
+    const userName = "SunilPK";
+    const apiUrl = "https://decode-cri.vercel.app/a2t/transcribe";	
+    // RETURN the fetch promise
+    return fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/webm" },
+        body: JSON.stringify({
+            user_name: userName,
+            audio_data: recordings[0]
+        })
+    })
+    .then(async response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+		const data = await response.json();        
+		return data;
+    })
+    .catch(err => {
+        console.error("DS Classification Error:", err);
+       alert(err);
+        return "Error: " + err.message;  // Still return something
+    });	   
+}
+   
 /* =========================
    CREATE RECORDER
 ========================= */
