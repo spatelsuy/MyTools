@@ -20,7 +20,7 @@ body {
 
 /* Desktop: 80% width */
 .container {
-    width: 80%;
+    width: 60%;
     margin: 20px 0;
 }
 
@@ -89,23 +89,17 @@ audio {
 <body>
 
 <div class="container">
-
-<h3 style="text-align: center;">🎤 Voice Recorder</h3>
-
-<canvas id="waveCanvas"></canvas>
-
-<div id="status">Ready</div>
-
-<div class="controls">
-    <button id="startBtn">Start</button>
-    <button id="pauseBtn" disabled>Pause</button>
-    <button id="stopBtn" disabled>Stop</button>
+	<h3 style="text-align: center;">🎤 Voice Recorder</h3>
+	<canvas id="waveCanvas"></canvas>
+	<div id="status">Ready</div>
+	<div class="controls">
+    	<button id="startBtn">Start</button>
+    	<button id="pauseBtn" disabled>Pause</button>
+    	<button id="stopBtn" disabled>Stop</button>
+	</div>
 </div>
-
 <h4 style="text-align: center;">History</h4>
 <div id="history"></div>
-
-</div>
 
 <script>
 
