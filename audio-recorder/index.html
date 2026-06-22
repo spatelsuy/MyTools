@@ -18,11 +18,16 @@ body {
     justify-content: center;
 }
 
-/* Desktop: 80% width */
+/* Desktop: 60% width */
 .container {
     width: 60%;
     margin: 20px 0;
 }
+
+.history-container {
+    width: 90%;
+    margin: 20px 0;
+}	
 
 /* Mobile: 100% with margin */
 @media (max-width: 768px) {
@@ -98,8 +103,11 @@ audio {
     	<button id="stopBtn" disabled>Stop</button>
 	</div>
 </div>
-<h4 style="text-align: center;">History</h4>
-<div id="history"></div>
+<div class="history-container">
+	<h4 style="text-align: center;">History</h4>
+	<div id="history"></div>	
+</div>
+
 
 <script>
 
