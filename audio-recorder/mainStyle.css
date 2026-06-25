@@ -28,12 +28,14 @@ body {
     background: var(--bg-color);
     color: var(--text-main);
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
     min-height: 100vh;
     min-height: 100dvh;
     padding: 20px;
 }
+
+
 
 /* Unified Main Wrapper */
 .app-wrapper {
@@ -217,6 +219,16 @@ audio {
 .btn-delete:active {
     background: #fee2e2;
     border-color: var(--danger);
+}
+
+#response {
+    width: 90%;
+    margin: 20px 5% 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 /* Mobile Adjustments */
