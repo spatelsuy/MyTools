@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="responseStyle.css">
+
 <title>Voice Recorder</title>
+
 
 <style>
 /* =========================
@@ -206,6 +209,7 @@ audio {
         <div id="history"></div>	
     </div>
    <button id="a2t">A2T</button>
+	<div id="response">-</div>
 </div>
 
 <script>
@@ -275,6 +279,7 @@ async function transcribe(){
     }
     const data = await response.json();
 	alert(JSON.stringify(data));
+	DisplayResponse(data);
 	alert(data.text);
     console.log("Transcribed text received:", data);
     return data;
@@ -537,5 +542,96 @@ function stopTimer() {
 renderHistory();
 </script>
 
+<script>
+const SECTION_CONFIG = {
+  tasks:     { label: "Tasks",     icon: "✅", theme: "theme-tasks" },
+  events:    { label: "Events",    icon: "📅", theme: "theme-events" },
+  reminders: { label: "Reminders", icon: "🔔", theme: "theme-reminders" },
+  notes:     { label: "Notes",     icon: "📝", theme: "theme-notes" }
+};
+
+function priorityClass(p) {
+  return p === "high" ? "priority-high" : p === "medium" ? "priority-medium" : "priority-low";
+}
+
+function renderItem(item) {
+  const tags = [];
+  if (item.time)       tags.push(`<span class="tag tag-time">🕐 ${item.time}</span>`);
+  if (item.is_deadline) tags.push(`<span class="tag tag-deadline">⚑ Deadline</span>`);
+  if (item.related_to) tags.push(`<span class="tag tag-related">↗ ${item.related_to}</span>`);
+  if (item.context)    tags.push(`<span class="tag tag-context">${item.context}</span>`);
+
+  return `
+    <div class="item">
+      <div class="item-top">
+        <div class="item-title">${item.title}</div>
+        <div class="priority-dot ${priorityClass(item.priority)}"
+             title="Priority: ${item.priority}"></div>
+      </div>
+      ${tags.length ? `<div class="item-meta">${tags.join("")}</div>` : ""}
+    </div>`;
+}
+
+function renderSection(key, items) {
+  const cfg = SECTION_CONFIG[key];
+  const body = items.length === 0
+    ? `<div class="empty">Nothing here</div>`
+    : `<div class="items-list">${items.map(renderItem).join("")}</div>`;
+
+  return `
+    <div class="section-card ${cfg.theme}">
+      <div class="section-header">
+        <div class="section-icon">${cfg.icon}</div>
+        <div class="section-title">${cfg.label}</div>
+        <div class="section-count">${items.length}</div>
+      </div>
+      ${body}
+    </div>`;
+}
+
+function DisplayResponse(jsonResp) {
+  const container = document.getElementById("response");
+  const a = jsonResp.analysis;
+
+  // Format extracted date
+  let dateStr = "";
+  if (a.extracted_on) {
+    const d = new Date(a.extracted_on);
+    dateStr = d.toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+  }
+
+  // Count total items
+  const total = ["tasks","events","reminders","notes"]
+    .reduce((sum, k) => sum + (a[k]||[]).length, 0);
+
+  // Build sections HTML
+  const sectionsHTML = ["tasks","events","reminders","notes"]
+    .map(k => renderSection(k, a[k] || []))
+    .join("");
+
+  container.innerHTML = `
+    <div class="planner-header">
+      <h2>My Day Planner</h2>
+      <div class="sub">${dateStr}</div>
+    </div>
+
+    <div class="transcription-card">
+      <div class="card-label">📝 Original Transcript</div>
+      <p>${jsonResp.transcription || "—"}</p>
+    </div>
+
+    <div class="sections-grid">${sectionsHTML}</div>
+
+    <div class="meta-bar">
+      <div class="status-dot"></div>
+      ${total} items extracted &middot; User: ${jsonResp.user || "—"} &middot; Status: ${jsonResp.status}
+    </div>
+  `;
+}
+</script>
+
+
+
+	
 </body>
 </html>
