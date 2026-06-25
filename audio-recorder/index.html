@@ -1,326 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="responseStyle.css">
+<link rel="stylesheet" href="mainStyle.css">
+
+<title>Voice Recorder</title>
+
+</head>
+
+<body>
+
+<div class="app-wrapper">
+    <!-- Recorder Interface -->
+    <div class="container">
+        <h3>Voice Recorder</h3>
+        <canvas id="waveCanvas"></canvas>
+        <div id="status">Ready</div>
+		<div class="controls">
+    		<button id="startBtn"><span>Start</span></button>
+    		<button id="pauseBtn" disabled><span>Pause</span></button>
+    		<button id="stopBtn" disabled><span>Stop</span></button>
+		</div>		
+    </div>
+
+    <!-- Storage / Logs Section -->
+    <div class="history-container">
+        <h4>History</h4>
+        <div id="history"></div>	
+    </div>
+   <button id="a2t">A2T</button>
+</div>
+<div id="response">-</div>
+<script>
 /* =========================
-   MODERN LIGHT PROFESSIONAL UI
+   GLOBAL STATE
 ========================= */
+let mediaRecorder;
+let audioChunks = [];
+let stream;
 
-:root {
-    --bg-color: #f8fafc;
-    --card-bg: #ffffff;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --primary: #0284c7;
-    --primary-hover: #0369a1;
-    --success: #16a34a;
-    --success-hover: #15803d;
-    --warning: #ea580c;
-    --warning-hover: #c2410c;
-    --danger: #dc2626;
-    --danger-hover: #b91c1c;
-    --border: #e2e8f0;
-}
+let audioContext;
+let analyser;
+let dataArray;
+let source;
 
-* {
-    box-sizing: border-box;
-}
+let recordingIndex = 0;
+let startTime;
+let timerInterval = null;
+let seconds = 0;
+let isPaused = false;
+let estimatedBitrate = 50 * 1024; 
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    margin: 0;
-    background: var(--bg-color);
-    color: var(--text-main);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding: 20px 0;
-}
+let liveSize = 0;
+let uiInterval;
+let recordings = [];
 
-/* Unified Main Wrapper */
-.app-wrapper {
-    width: 100%;
-    max-width: 500px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
+/* =========================
+   UI ELEMENTS
+========================= */
+const canvas = document.getElementById("waveCanvas");
+const ctx = canvas.getContext("2d");
 
-.container,
-.history-container {
-    width: 100%;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-}
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const stopBtn = document.getElementById("stopBtn");
+const status = document.getElementById("status");
+const history = document.getElementById("history");
 
-h3,
-h4 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-weight: 600;
-    letter-spacing: -0.025em;
-}
+const a2t = document.getElementById("a2t");
 
-h3 {
-    font-size: 22px;
-    text-align: center;
-    color: var(--text-main);
-}
+startBtn.onclick = startRecording;
+pauseBtn.onclick = togglePause;
+stopBtn.onclick = stopRecording;
+a2t.onclick = transcribe;
 
-h4 {
-    font-size: 16px;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 10px;
-}
 
-/* Status Text */
-#status {
-    text-align: center;
-    margin: 16px 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
+async function transcribe(){
+  const apiUrl = "https://decode-cri.vercel.app/a2t/transcribe";
+  // 1. Create a FormData container
+  const formData = new FormData();
+  
+  // 2. Append the normal string data
+  formData.append("user_name", "SunilK");
+  
+  // 3. Append the raw audio recording (and give it a filename extension)
+  formData.append("file", recordings[0].blob, "recording.webm");
 
-/* Visualization Canvas */
-canvas {
-    width: 100%;
-    height: 100px;
-    background: #f1f5f9;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    display: block;
-}
+  try {
+    // 4. Send the request without setting a "Content-Type" header manually!
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: formData // The browser handles headers automatically here
+    });
 
-/* Controls Alignment */
-.controls {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-/* Modern Button Base Styling */
-button {
-    flex: 1;
-    min-height: 44px;
-    padding: 12px 14px;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Ensure span labels behave cleanly in buttons */
-button span {
-    display: inline-block;
-}
-
-button:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-/* Dynamic Action Buttons */
-#startBtn {
-    background: var(--success);
-    color: white;
-}
-#startBtn:hover,
-#startBtn:active {
-    background: var(--success-hover);
-}
-
-#pauseBtn {
-    background: var(--warning);
-    color: white;
-}
-#pauseBtn:hover,
-#pauseBtn:active {
-    background: var(--warning-hover);
-}
-
-#stopBtn {
-    background: var(--danger);
-    color: white;
-}
-#stopBtn:hover,
-#stopBtn:active {
-    background: var(--danger-hover);
-}
-
-/* Optional standalone action button such as A2T */
-#a2t {
-    width: 100%;
-    min-height: 44px;
-    padding: 12px 14px;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    background: var(--primary);
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-#a2t:hover,
-#a2t:active {
-    background: var(--primary-hover);
-}
-
-/* History Cards */
-#history {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.card {
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    padding: 14px;
-    border-radius: 12px;
-}
-
-.card-title {
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 4px;
-    color: var(--text-main);
-}
-
-.meta {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-}
-
-/* Native Audio Player Styling overrides */
-audio {
-    width: 100%;
-    margin-bottom: 12px;
-    border-radius: 8px;
-}
-
-/* History Card Action Layout */
-.card-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.card-actions button {
-    min-height: 44px;
-    padding: 10px 12px;
-    font-size: 12px;
-}
-
-.btn-download {
-    background: var(--primary);
-    color: white;
-}
-.btn-download:hover,
-.btn-download:active {
-    background: var(--primary-hover);
-}
-
-.btn-delete {
-    background: transparent;
-    border: 1px solid #cbd5e1;
-    color: var(--danger);
-}
-.btn-delete:hover,
-.btn-delete:active {
-    background: #fee2e2;
-    border-color: var(--danger);
-}
-
-/* Full-width response area below wrapper with 5% viewport margins */
-#response {
-    width: 90vw;
-    margin-top: 20px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-/* Mobile Adjustments */
-@media (max-width: 480px) {
-    body {
-        padding: 12px 0;
+    if (!response.ok) {
+      throw new Error(`Server responded with status ${response.status}`);
     }
+    const data = await response.json();
+	alert(JSON.stringify(data));
+	DisplayResponse(data);
+	alert(data.text);
+    console.log("Transcribed text received:", data);
+    return data;
 
-    .app-wrapper {
-        gap: 16px;
-    }
+  } catch (error) {
+	alert(error);
+    console.error("Error uploading audio:", error);
+  }
+}
+	
 
-    .container,
-    .history-container {
-        padding: 16px;
-        border-radius: 14px;
-    }
+   
+/* =========================
+   CREATE RECORDER
+========================= */
+function createRecorder(stream) {
+    const recorder = new MediaRecorder(stream);
 
-    h3 {
-        font-size: 20px;
-    }
+    recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+            audioChunks.push(e.data);
+            liveSize += e.data.size;
+        }
+    };
 
-    h4 {
-        font-size: 15px;
-    }
+    recorder.onstop = saveRecording;
+    return recorder;
+}
 
-    /* Keep recorder controls horizontal on mobile */
-    .controls {
-        justify-content: center;
-        gap: 16px;
-    }
+/* =========================
+   START
+========================= */
+async function startRecording() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+  			audio: {
+    			noiseSuppression: true,  // Strips out background hums/hiss
+    			echoCancellation: true,  // Prevents echo and feedback
+    			autoGainControl: true    // Keeps your voice volume steady
+  			} 
+		});
+        audioChunks = [];
+        liveSize = 0;
+        startTime = Date.now();
 
-    .controls button {
-        flex: 0 0 auto;
-        width: 56px;
-        height: 56px;
-        min-height: 56px;
-        padding: 0;
-        border-radius: 50%;
-        position: relative;
-    }
+        setupWaveform(stream);
 
-    /* Hide text visually but keep it accessible */
-    .controls button span {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-    }
+        mediaRecorder = createRecorder(stream);
+        mediaRecorder.start();
+        startTimer();
+        uiInterval = setInterval(updateUI, 300);
 
-    /* Stack only history card action buttons on mobile */
-    .card-actions {
-        flex-direction: column;
-    }
-
-    .card-actions button,
-    #a2t {
-        width: 100%;
-    }
-
-    #response {
-        width: 90vw;
-        padding: 16px;
-        border-radius: 14px;
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+    } catch (err) {
+        status.innerText = "Microphone access denied";
+        console.error(err);
     }
 }
+
+/* =========================
+   PAUSE / RESUME
+========================= */
+function togglePause() {
+    if (mediaRecorder.state === "recording") {
+        mediaRecorder.pause();
+        pauseTimer();
+        pauseBtn.innerText = "Resume";
+        status.innerText = `⏸ Paused • ${formatDuration(seconds)}`;
+    } else if (mediaRecorder.state === "paused") {
+        mediaRecorder.resume();
+        resumeTimer();
+        pauseBtn.innerText = "Pause";
+    }
+}
+
+/* =========================
+   STOP
+========================= */
+function stopRecording() {
+    mediaRecorder.stop();
+    stopTimer();
+    clearInterval(uiInterval);
+
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+    pauseBtn.innerText = "Pause";
+
+    status.innerText = "Processing...";
+}
+
+/* =========================
+   SAVE
+========================= */
+function saveRecording() {
+    const blob = new Blob(audioChunks, { type: "audio/webm" });
+    const url = URL.createObjectURL(blob);
+    const duration = seconds;
+
+    const rec = {
+        name: "Recording " + (recordingIndex + 1),
+        id: Date.now(),
+        blob,
+        url,
+        size: blob.size,
+        duration,
+        createdAt: new Date()
+    };
+    recordingIndex = recordingIndex + 1;
+    recordings.push(rec);
+
+    renderHistory();
+
+    stream.getTracks().forEach(t => t.stop());
+    if (audioContext) audioContext.close();
+
+    status.innerText = "Saved Successfully ✓";
+}
+
+/* =========================
+   LIVE UI UPDATE
+========================= */
+function updateUI() {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        status.innerText = `🔴 Recording... ${formatDuration(seconds)}`;
+    }
+    drawWaveform();
+}
+
+/* =========================
+   WAVEFORM
+========================= */
+function setupWaveform(stream) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+    analyser.fftSize = 256;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+}
+
+function drawWaveform() {
+    if (!analyser) return;
+
+    analyser.getByteTimeDomainData(dataArray);
+
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+
+    ctx.fillStyle = "#f1f5f9";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "#334155";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+
+    let sliceWidth = canvas.width / dataArray.length;
+    let x = 0;
+
+    for (let i = 0; i < dataArray.length; i++) {
+        let v = dataArray[i] / 128.0;
+        let y = (v * canvas.height) / 2;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+
+        x += sliceWidth;
+    }
+
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+}
+
+/* =========================
+   HISTORY RENDERING
+========================= */
+function renderHistory() {
+    history.innerHTML = "";
+
+    if(recordings.length === 0) {
+        history.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0;">No recordings saved yet.</div>`;
+        return;
+    }
+
+    recordings.forEach((r) => {
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+            <div class="card-title">${r.name}</div>
+            <div class="meta">
+                ${formatSize(r.size)} • ${formatDuration(r.duration)} • ${r.createdAt.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </div>
+            <audio controls src="${r.url}"></audio>
+            <div class="card-actions">
+                <button class="btn-download" onclick="downloadFile('${r.url}','webm')">Download WEBM</button>
+                <button class="btn-delete" onclick="deleteRec(${r.id})">Delete</button>
+            </div>
+        `;
+        history.appendChild(div);
+    });
+}
+
+/* =========================
+   DOWNLOAD & DELETE
+========================= */
+function downloadFile(url, ext) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `recording.${ext}`;
+    a.click();
+}
+
+function deleteRec(id) {
+    const i = recordings.findIndex(r => r.id === id);
+    if (i !== -1) {
+        URL.revokeObjectURL(recordings[i].url);
+        recordings.splice(i, 1);
+        renderHistory();
+    }
+}
+
+/* =========================
+   HELPERS
+========================= */
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+function formatDuration(sec) {
+    let min = Math.floor(sec / 60);
+    sec = sec % 60;
+    return `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+}
+
+function startTimer() {
+    seconds = 0;
+    isPaused = false;
+    timerInterval = setInterval(() => {
+        if (!isPaused) {
+            seconds++;
+        }
+    }, 1000);
+}
+
+function pauseTimer() { isPaused = true; }
+function resumeTimer() { isPaused = false; }
+function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+}
+
+// Initial empty state call
+renderHistory();
+</script>
+
+<script>
+const SECTION_CONFIG = {
+  tasks:     { label: "Tasks",     icon: "✅", theme: "theme-tasks" },
+  events:    { label: "Events",    icon: "📅", theme: "theme-events" },
+  reminders: { label: "Reminders", icon: "🔔", theme: "theme-reminders" },
+  notes:     { label: "Notes",     icon: "📝", theme: "theme-notes" }
+};
+
+function priorityClass(p) {
+  return p === "high" ? "priority-high" : p === "medium" ? "priority-medium" : "priority-low";
+}
+
+function renderItem(item) {
+  const tags = [];
+  if (item.time)       tags.push(`<span class="tag tag-time">🕐 ${item.time}</span>`);
+  if (item.is_deadline) tags.push(`<span class="tag tag-deadline">⚑ Deadline</span>`);
+  if (item.related_to) tags.push(`<span class="tag tag-related">↗ ${item.related_to}</span>`);
+  if (item.context)    tags.push(`<span class="tag tag-context">${item.context}</span>`);
+
+  return `
+    <div class="item">
+      <div class="item-top">
+        <div class="item-title">${item.title}</div>
+        <div class="priority-dot ${priorityClass(item.priority)}"
+             title="Priority: ${item.priority}"></div>
+      </div>
+      ${tags.length ? `<div class="item-meta">${tags.join("")}</div>` : ""}
+    </div>`;
+}
+
+function renderSection(key, items) {
+  const cfg = SECTION_CONFIG[key];
+  const body = items.length === 0
+    ? `<div class="empty">Nothing here</div>`
+    : `<div class="items-list">${items.map(renderItem).join("")}</div>`;
+
+  return `
+    <div class="section-card ${cfg.theme}">
+      <div class="section-header">
+        <div class="section-icon">${cfg.icon}</div>
+        <div class="section-title">${cfg.label}</div>
+        <div class="section-count">${items.length}</div>
+      </div>
+      ${body}
+    </div>`;
+}
+
+function DisplayResponse(jsonResp) {
+  const container = document.getElementById("response");
+  const a = jsonResp.analysis;
+
+  // Format extracted date
+  let dateStr = "";
+  if (a.extracted_on) {
+    const d = new Date(a.extracted_on);
+    dateStr = d.toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+  }
+
+  // Count total items
+  const total = ["tasks","events","reminders","notes"]
+    .reduce((sum, k) => sum + (a[k]||[]).length, 0);
+
+  // Build sections HTML
+  const sectionsHTML = ["tasks","events","reminders","notes"]
+    .map(k => renderSection(k, a[k] || []))
+    .join("");
+
+  container.innerHTML = `
+    <div class="planner-header">
+      <h2>My Day Planner</h2>
+      <div class="sub">${dateStr}</div>
+    </div>
+
+    <div class="transcription-card">
+      <div class="card-label">📝 Original Transcript</div>
+      <p>${jsonResp.transcription || "—"}</p>
+    </div>
+
+    <div class="sections-grid">${sectionsHTML}</div>
+
+    <div class="meta-bar">
+      <div class="status-dot"></div>
+      ${total} items extracted &middot; User: ${jsonResp.user || "—"} &middot; Status: ${jsonResp.status}
+    </div>
+  `;
+}
+</script>
+	
+</body>
+</html>
