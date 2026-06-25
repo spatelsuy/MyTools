@@ -22,7 +22,6 @@
     box-sizing: border-box;
 }
 
-
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
@@ -30,23 +29,24 @@ body {
     color: var(--text-main);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 20px;
-    box-sizing: border-box;
 }
 
 /* Unified Main Wrapper */
 .app-wrapper {
     width: 100%;
-    max-width: 500px; /* Snug width looks sharper */
+    max-width: 500px;
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-.container, .history-container {
-    width: 100%; /* Force standard expansion within the layout wrapper */
+.container,
+.history-container {
+    width: 100%;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -54,15 +54,26 @@ body {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
 
-h3, h4 {
+h3,
+h4 {
     margin-top: 0;
     margin-bottom: 20px;
     font-weight: 600;
     letter-spacing: -0.025em;
 }
 
-h3 { font-size: 22px; text-align: center; color: var(--text-main); }
-h4 { font-size: 16px; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+h3 {
+    font-size: 22px;
+    text-align: center;
+    color: var(--text-main);
+}
+
+h4 {
+    font-size: 16px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+}
 
 /* Status Text */
 #status {
@@ -95,6 +106,7 @@ canvas {
 /* Modern Button Base Styling */
 button {
     flex: 1;
+    min-height: 44px;
     padding: 12px 14px;
     font-size: 14px;
     font-weight: 600;
@@ -114,14 +126,32 @@ button:disabled {
 }
 
 /* Dynamic Action Buttons */
-#startBtn { background: var(--success); color: white; }
-#startBtn:hover { background: var(--success-hover); }
+#startBtn {
+    background: var(--success);
+    color: white;
+}
+#startBtn:hover,
+#startBtn:active {
+    background: var(--success-hover);
+}
 
-#pauseBtn { background: var(--warning); color: white; }
-#pauseBtn:hover { background: var(--warning-hover); }
+#pauseBtn {
+    background: var(--warning);
+    color: white;
+}
+#pauseBtn:hover,
+#pauseBtn:active {
+    background: var(--warning-hover);
+}
 
-#stopBtn  { background: var(--danger); color: white; }
-#stopBtn:hover { background: var(--danger-hover); }
+#stopBtn {
+    background: var(--danger);
+    color: white;
+}
+#stopBtn:hover,
+#stopBtn:active {
+    background: var(--danger-hover);
+}
 
 /* History Cards */
 #history {
@@ -164,12 +194,62 @@ audio {
 }
 
 .card-actions button {
-    padding: 8px 12px;
+    min-height: 44px;
+    padding: 10px 12px;
     font-size: 12px;
 }
 
-.btn-download { background: var(--primary); color: white; }
-.btn-download:hover { background: var(--primary-hover); }
+.btn-download {
+    background: var(--primary);
+    color: white;
+}
+.btn-download:hover,
+.btn-download:active {
+    background: var(--primary-hover);
+}
 
-.btn-delete { background: transparent; border: 1px solid #cbd5e1; color: var(--danger); }
-.btn-delete:hover { background: #fee2e2; border-color: var(--danger); }
+.btn-delete {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: var(--danger);
+}
+.btn-delete:hover,
+.btn-delete:active {
+    background: #fee2e2;
+    border-color: var(--danger);
+}
+
+/* Mobile Adjustments */
+@media (max-width: 480px) {
+    body {
+        padding: 12px;
+    }
+
+    .app-wrapper {
+        gap: 16px;
+    }
+
+    .container,
+    .history-container {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    h3 {
+        font-size: 20px;
+    }
+
+    h4 {
+        font-size: 15px;
+    }
+
+    .controls,
+    .card-actions {
+        flex-direction: column;
+    }
+
+    button,
+    .card-actions button {
+        width: 100%;
+    }
+}
