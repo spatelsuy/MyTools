@@ -276,8 +276,8 @@ async function transcribe(){
     const data = await response.json();
 	alert(JSON.stringify(data));
 	alert(data.text);
-    console.log("Transcribed text received:", data.text);
-    return data.text;
+    console.log("Transcribed text received:", data);
+    return data;
 
   } catch (error) {
 	alert(error);
