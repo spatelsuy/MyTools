@@ -32,10 +32,8 @@ body {
     align-items: center;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 20px;
+    padding: 20px 0;
 }
-
-
 
 /* Unified Main Wrapper */
 .app-wrapper {
@@ -121,6 +119,11 @@ button {
     align-items: center;
 }
 
+/* Ensure span labels behave cleanly in buttons */
+button span {
+    display: inline-block;
+}
+
 button:disabled {
     opacity: 0.35;
     cursor: not-allowed;
@@ -153,6 +156,26 @@ button:disabled {
 #stopBtn:hover,
 #stopBtn:active {
     background: var(--danger-hover);
+}
+
+/* Optional standalone action button such as A2T */
+#a2t {
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#a2t:hover,
+#a2t:active {
+    background: var(--primary-hover);
 }
 
 /* History Cards */
@@ -221,9 +244,10 @@ audio {
     border-color: var(--danger);
 }
 
+/* Full-width response area below wrapper with 5% viewport margins */
 #response {
-    width: 90%;
-    margin: 20px 5% 0;
+    width: 90vw;
+    margin-top: 20px;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -234,7 +258,7 @@ audio {
 /* Mobile Adjustments */
 @media (max-width: 480px) {
     body {
-        padding: 12px;
+        padding: 12px 0;
     }
 
     .app-wrapper {
@@ -255,13 +279,48 @@ audio {
         font-size: 15px;
     }
 
-    .controls,
+    /* Keep recorder controls horizontal on mobile */
+    .controls {
+        justify-content: center;
+        gap: 16px;
+    }
+
+    .controls button {
+        flex: 0 0 auto;
+        width: 56px;
+        height: 56px;
+        min-height: 56px;
+        padding: 0;
+        border-radius: 50%;
+        position: relative;
+    }
+
+    /* Hide text visually but keep it accessible */
+    .controls button span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    /* Stack only history card action buttons on mobile */
     .card-actions {
         flex-direction: column;
     }
 
-    button,
-    .card-actions button {
+    .card-actions button,
+    #a2t {
         width: 100%;
+    }
+
+    #response {
+        width: 90vw;
+        padding: 16px;
+        border-radius: 14px;
     }
 }
