@@ -115,7 +115,12 @@ async function transcribe(){
    CREATE RECORDER
 ========================= */
 function createRecorder(stream) {
-    const recorder = new MediaRecorder(stream);
+	const mimeType = 'audio/webm; codecs=opus'; 
+	const options = {
+		mimeType: mimeType,
+		audioBitsPerSecond: 24000 // 24 kbps is highly compressed but clear for voice
+	};
+    const recorder = new MediaRecorder(stream, options);
 
     recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
