@@ -99,9 +99,7 @@ async function transcribe(){
       throw new Error(`Server responded with status ${response.status}`);
     }
     const data = await response.json();
-	alert(JSON.stringify(data));
 	DisplayResponse(data);
-	alert(data.text);
     console.log("Transcribed text received:", data);
     return data;
 
