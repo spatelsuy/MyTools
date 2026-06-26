@@ -300,7 +300,7 @@ function stopRecording() {
 /* =========================
    SAVE
 ========================= */
-function saveRecording() {
+async function saveRecording() {
     const blob = new Blob(audioChunks, { type: "audio/webm" });
     const url = URL.createObjectURL(blob);
     const duration = seconds;
@@ -428,7 +428,7 @@ function downloadFile(url, ext) {
     a.click();
 }
 
-function deleteRec(id) {
+async function deleteRec(id) {
     const i = recordings.findIndex(r => r.id === id);
     if (i !== -1) {
         URL.revokeObjectURL(recordings[i].url);
