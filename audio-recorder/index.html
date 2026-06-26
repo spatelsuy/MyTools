@@ -79,6 +79,11 @@ a2t.onclick = transcribe;
 /* =========================
    BOOT — restore from IndexedDB
 ========================= */
+const DB_NAME = "VoiceRecorderDB";
+const DB_VERSION = 1;
+const STORE_NAME = "recordings";
+let db = null;
+	
 async function boot() {
   try {
     db = await openDB();
@@ -113,10 +118,6 @@ boot();
    Recordings are stored as blobs in IndexedDB so they survive
    page refreshes, tab switches, and mobile screen locks.
 ========================= */
-const DB_NAME = "VoiceRecorderDB";
-const DB_VERSION = 1;
-const STORE_NAME = "recordings";
-let db = null;
 
 function openDB() {
   return new Promise((resolve, reject) => {
