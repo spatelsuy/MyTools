@@ -70,6 +70,17 @@ let liveSize = 0;
 let uiInterval;
 let recordings = [];
 
+// ---- Auto-pause on silence config ----
+const SILENCE_TIMEOUT_MS  = 15 * 60 * 1000; // 15 minutes — change this value to adjust
+const SILENCE_THRESHOLD   = 5;               // RMS below this (0-128) = silence
+
+// ---- Auto-pause runtime state ----
+let silenceRafId       = null;   // requestAnimationFrame handle
+let silenceStartedAt   = null;   // timestamp when continuous silence began
+let isAutoPaused       = false;  // true when paused by silence detector
+
+
+
 /* =========================
    UI ELEMENTS
 ========================= */
@@ -318,6 +329,7 @@ async function startRecording() {
         mediaRecorder = createRecorder(stream);
         mediaRecorder.start();
         startTimer();
+		startSilenceDetection();
         uiInterval = setInterval(updateUI, 300);
 
         startBtn.disabled = true;
@@ -333,22 +345,26 @@ async function startRecording() {
    PAUSE / RESUME
 ========================= */
 function togglePause() {
-    if (mediaRecorder.state === "recording") {
-        mediaRecorder.pause();
-        pauseTimer();
-        pauseBtn.innerText = "Resume";
-        status.innerText = `⏸ Paused • ${formatDuration(seconds)}`;
-    } else if (mediaRecorder.state === "paused") {
-        mediaRecorder.resume();
-        resumeTimer();
-        pauseBtn.innerText = "Pause";
-    }
+  if (mediaRecorder.state === "recording") {
+    mediaRecorder.pause();
+    pauseTimer();
+    pauseBtn.innerText = "Resume";
+    status.innerText   = `⏸ Paused • ${formatDuration(seconds)}`;
+  } else if (mediaRecorder.state === "paused") {
+    mediaRecorder.resume();
+    resumeTimer();
+    pauseBtn.innerText  = "Pause";
+    // If user manually resumes after an auto-pause, reset silence tracking
+    isAutoPaused      = false;
+    silenceStartedAt  = null;
+  }
 }
 
 /* =========================
    STOP
 ========================= */
 function stopRecording() {
+	stopSilenceDetection();
     mediaRecorder.stop();
     stopTimer();
     clearInterval(uiInterval);
@@ -401,12 +417,95 @@ async function saveRecording() {
    LIVE UI UPDATE
 ========================= */
 function updateUI() {
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-        status.innerText = `🔴 Recording... ${formatDuration(seconds)}`;
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    if (silenceStartedAt) {
+      const remaining = Math.ceil(
+        (SILENCE_TIMEOUT_MS - (Date.now() - silenceStartedAt)) / 1000
+      );
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+      const countdown = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      status.innerText = `🔴 Recording... ${formatDuration(seconds)}  |  🤫 Silence — auto-pause in ${countdown}`;
+    } else {
+      status.innerText = `🔴 Recording... ${formatDuration(seconds)}`;
     }
-    drawWaveform();
+  } else if (mediaRecorder && mediaRecorder.state === "paused" && isAutoPaused) {
+    status.innerText = `⏸ Auto-paused (silence) • ${formatDuration(seconds)} — speak to resume`;
+  }
+  drawWaveform();
 }
 
+/* =========================
+   SILENCE DETECTION
+   Runs every animation frame while recording is active.
+   Measures RMS volume; if it stays below SILENCE_THRESHOLD for
+   SILENCE_TIMEOUT_MS the recorder is auto-paused.
+   Resumes as soon as sound is detected again.
+========================= */
+function startSilenceDetection() {
+  silenceStartedAt = null;
+  isAutoPaused     = false;
+
+  function tick() {
+    silenceRafId = requestAnimationFrame(tick);
+
+    if (!analyser || !mediaRecorder) return;
+
+    // Sample current audio level
+    analyser.getByteTimeDomainData(dataArray);
+    let sumSq = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      const val = dataArray[i] - 128;   // centre around 0
+      sumSq += val * val;
+    }
+    const rms = Math.sqrt(sumSq / dataArray.length);
+    const isSilent = rms < SILENCE_THRESHOLD;
+
+    const state = mediaRecorder.state;
+
+    if (state === "recording") {
+      if (isSilent) {
+        // Start / continue silence window
+        if (!silenceStartedAt) silenceStartedAt = Date.now();
+
+        const silentFor = Date.now() - silenceStartedAt;
+        if (silentFor >= SILENCE_TIMEOUT_MS) {
+          // Silence exceeded threshold — auto-pause
+          mediaRecorder.pause();
+          pauseTimer();
+          pauseBtn.innerText = "Resume";
+          isAutoPaused       = true;
+          silenceStartedAt   = null;
+        }
+      } else {
+        // Sound detected — reset silence window
+        silenceStartedAt = null;
+      }
+    } else if (state === "paused" && isAutoPaused) {
+      if (!isSilent) {
+        // User started talking again — auto-resume
+        mediaRecorder.resume();
+        resumeTimer();
+        pauseBtn.innerText = "Pause";
+        isAutoPaused       = false;
+        silenceStartedAt   = null;
+      }
+    }
+  }
+
+  silenceRafId = requestAnimationFrame(tick);
+}
+
+function stopSilenceDetection() {
+  if (silenceRafId !== null) {
+    cancelAnimationFrame(silenceRafId);
+    silenceRafId = null;
+  }
+  silenceStartedAt = null;
+  isAutoPaused     = false;
+}
+
+	
 /* =========================
    WAVEFORM
 ========================= */
