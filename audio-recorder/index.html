@@ -76,6 +76,106 @@ pauseBtn.onclick = togglePause;
 stopBtn.onclick = stopRecording;
 a2t.onclick = transcribe;
 
+/* =========================
+   BOOT — restore from IndexedDB
+========================= */
+async function boot() {
+  try {
+    db = await openDB();
+    const saved = await dbLoadAllRecordings();
+
+    // Sort oldest-first so indices/names are preserved
+    saved.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    recordings = saved.map(entry => ({
+      id:        entry.id,
+      name:      entry.name,
+      blob:      entry.blob,
+      url:       URL.createObjectURL(entry.blob),   // fresh ObjectURL each session
+      size:      entry.size,
+      duration:  entry.duration,
+      createdAt: new Date(entry.createdAt)
+    }));
+
+    recordingIndex = recordings.length;
+    renderHistory();
+  } catch (err) {
+    console.error("IndexedDB boot failed — recordings won't persist:", err);
+    renderHistory();
+  }
+}
+
+boot();
+
+	
+/* =========================
+   INDEXEDDB PERSISTENCE
+   Recordings are stored as blobs in IndexedDB so they survive
+   page refreshes, tab switches, and mobile screen locks.
+========================= */
+const DB_NAME = "VoiceRecorderDB";
+const DB_VERSION = 1;
+const STORE_NAME = "recordings";
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = (e) => {
+      const database = e.target.result;
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+    };
+
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror  = (e) => reject(e.target.error);
+  });
+}
+
+
+function dbSaveRecording(rec) {
+  return new Promise((resolve, reject) => {
+    // Store plain-serialisable copy (blob + metadata, no ObjectURL)
+    const entry = {
+      id:        rec.id,
+      name:      rec.name,
+      blob:      rec.blob,
+      size:      rec.size,
+      duration:  rec.duration,
+      createdAt: rec.createdAt.toISOString()
+    };
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).put(entry);
+    tx.oncomplete = resolve;
+    tx.onerror    = (e) => reject(e.target.error);
+  });
+}
+
+function dbDeleteRecording(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror    = (e) => reject(e.target.error);
+  });
+}
+
+function dbLoadAllRecordings() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const req = tx.objectStore(STORE_NAME).getAll();
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+
+
+	
+/* =========================
+   Use GenAI
+========================= */	
 
 async function transcribe(){
   const apiUrl = "https://decode-cri.vercel.app/a2t/transcribe";
@@ -216,7 +316,14 @@ function saveRecording() {
     };
     recordingIndex = recordingIndex + 1;
     recordings.push(rec);
-
+	// Persist to IndexedDB — won't be lost on refresh or screen lock
+	if (db) {
+		try {
+			await dbSaveRecording(rec);
+		} catch (err) {
+			console.error("Failed to save recording to IndexedDB:", err);
+		}
+	}	
     renderHistory();
 
     stream.getTracks().forEach(t => t.stop());
@@ -326,6 +433,16 @@ function deleteRec(id) {
     if (i !== -1) {
         URL.revokeObjectURL(recordings[i].url);
         recordings.splice(i, 1);
+
+		// Remove from IndexedDB so it stays gone after next reload
+		if (db) {
+		  try {
+			await dbDeleteRecording(id);
+		  } catch (err) {
+			console.error("Failed to delete recording from IndexedDB:", err);
+		  }
+		}		
+		
         renderHistory();
     }
 }
