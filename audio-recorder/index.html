@@ -346,17 +346,19 @@ async function startRecording() {
 ========================= */
 function togglePause() {
   if (mediaRecorder.state === "recording") {
+    // Manual pause — speaking will NOT resume this
     mediaRecorder.pause();
     pauseTimer();
     pauseBtn.innerText = "Resume";
-    status.innerText   = `⏸ Paused • ${formatDuration(seconds)}`;
   } else if (mediaRecorder.state === "paused") {
+    // Resume button works for both manual and auto-pause
     mediaRecorder.resume();
     resumeTimer();
-    pauseBtn.innerText  = "Pause";
-    // If user manually resumes after an auto-pause, reset silence tracking
-    isAutoPaused      = false;
-    silenceStartedAt  = null;
+    pauseBtn.innerText = "Pause";
+    // Clear auto-pause flag so the silence detector doesn't
+    // immediately re-trigger the voice-resume path
+    isAutoPaused     = false;
+    silenceStartedAt = null;
   }
 }
 
@@ -418,19 +420,13 @@ async function saveRecording() {
 ========================= */
 function updateUI() {
   if (mediaRecorder && mediaRecorder.state === "recording") {
-    if (silenceStartedAt) {
-      const remaining = Math.ceil(
-        (SILENCE_TIMEOUT_MS - (Date.now() - silenceStartedAt)) / 1000
-      );
-      const mins = Math.floor(remaining / 60);
-      const secs = remaining % 60;
-      const countdown = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-      status.innerText = `🔴 Recording... ${formatDuration(seconds)}  |  🤫 Silence — auto-pause in ${countdown}`;
+    status.innerText = `🔴 Recording... ${formatDuration(seconds)}`;
+  } else if (mediaRecorder && mediaRecorder.state === "paused") {
+    if (isAutoPaused) {
+      status.innerText = `⏸ Auto-paused • ${formatDuration(seconds)} — speak to resume`;
     } else {
-      status.innerText = `🔴 Recording... ${formatDuration(seconds)}`;
+      status.innerText = `⏸ Paused • ${formatDuration(seconds)} — tap Resume to continue`;
     }
-  } else if (mediaRecorder && mediaRecorder.state === "paused" && isAutoPaused) {
-    status.innerText = `⏸ Auto-paused (silence) • ${formatDuration(seconds)} — speak to resume`;
   }
   drawWaveform();
 }
