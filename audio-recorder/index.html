@@ -32,6 +32,19 @@
     </div>
    <button id="a2t">A2T</button>
 </div>
+<!-- DB size warning banner -->
+<div id="db-warning" style="
+  display:none;
+  margin:10px 16px;
+  padding:10px 14px;
+  border-radius:8px;
+  font-size:13px;
+  line-height:1.5;
+  border:1px solid #f59e0b;
+  background:#fffbeb;
+  color:#92400e;
+"></div>
+	
 <div id="response">-</div>
 <script>
 /* =========================
@@ -83,6 +96,55 @@ const DB_NAME = "VoiceRecorderDB";
 const DB_VERSION = 1;
 const STORE_NAME = "recordings";
 let db = null;
+
+// Warning thresholds for stored recordings size
+const WARN_MB     = 50;   // show yellow warning above this
+const CRITICAL_MB = 200;  // show red warning above this
+
+/* ----- DB size helpers ----- */
+function getDBSize() {
+  // Sum blob sizes from the in-memory array (already loaded from IndexedDB)
+  return recordings.reduce((sum, r) => sum + r.size, 0);
+}
+
+	
+function checkDBSize() {
+  const bytes    = getDBSize();
+  const mb       = bytes / (1024 * 1024);
+  const banner   = document.getElementById("db-warning");
+  if (!banner) return;
+
+  if (mb === 0) {
+    banner.style.display = "none";
+    return;
+  }
+
+  const sizeStr = mb < 1 ? (bytes / 1024).toFixed(1) + " KB"
+                          : mb.toFixed(1) + " MB";
+
+  if (mb >= CRITICAL_MB) {
+    banner.style.display  = "block";
+    banner.style.borderColor  = "#ef4444";
+    banner.style.background   = "#fef2f2";
+    banner.style.color        = "#7f1d1d";
+    banner.innerHTML = `⚠️ <strong>Storage critical — ${sizeStr} used.</strong><br>
+      Your recordings are taking up a lot of space. Please delete old recordings to free up storage.`;
+  } else if (mb >= WARN_MB) {
+    banner.style.display  = "block";
+    banner.style.borderColor  = "#f59e0b";
+    banner.style.background   = "#fffbeb";
+    banner.style.color        = "#92400e";
+    banner.innerHTML = `⚠️ <strong>Storage warning — ${sizeStr} used.</strong><br>
+      You are approaching the storage limit. Please delete a few old recordings.`;
+  } else {
+    banner.style.display     = "block";
+    banner.style.borderColor = "#e5e7eb";
+    banner.style.background  = "#f7f8fa";
+    banner.style.color       = "#57606a";
+    banner.innerHTML = `🗄️ Storage used: <strong>${sizeStr}</strong>`;
+  }
+}
+
 	
 async function boot() {
   try {
@@ -104,6 +166,7 @@ async function boot() {
 
     recordingIndex = recordings.length;
     renderHistory();
+	checkDBSize();
   } catch (err) {
     console.error("IndexedDB boot failed — recordings won't persist:", err);
     renderHistory();
