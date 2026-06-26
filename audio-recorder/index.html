@@ -389,7 +389,8 @@ async function saveRecording() {
 		}
 	}	
     renderHistory();
-
+  	checkDBSize();
+	
     stream.getTracks().forEach(t => t.stop());
     if (audioContext) audioContext.close();
 
@@ -508,6 +509,7 @@ async function deleteRec(id) {
 		}		
 		
         renderHistory();
+		checkDBSize();
     }
 }
 
