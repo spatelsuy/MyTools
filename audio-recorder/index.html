@@ -388,7 +388,7 @@ async function saveRecording() {
     const duration = seconds;
 
     const rec = {
-        name: "Recording " + startTime,
+        name: "Recording " + new Date(startTime).toString(),
         id: Date.now(),
         blob,
         url,
