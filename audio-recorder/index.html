@@ -259,6 +259,7 @@ async function transcribe(){
   
   // 2. Append the normal string data
   formData.append("user_name", "SunilK");
+	formData.append("client_time", "2020-01-01");
   
   // 3. Append the raw audio recording (and give it a filename extension)
   formData.append("file", recordings[0].blob, "recording.webm");
