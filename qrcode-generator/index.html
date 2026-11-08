@@ -4,17 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QR Code Generator</title>
+<link rel="stylesheet" href="../common.css">
+<script src="../header.js"></script>
 
 <style>
-    * {
-        box-sizing: border-box;
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
     }
 
-    body {
-        font-family: Arial, sans-serif;
-        background: #f4f6f9;
-        margin: 0;
-        padding: 30px;
+    .wrapper {
+        padding: 32px 16px;
     }
 
     .container {
@@ -79,6 +80,9 @@
 </head>
 <body>
 
+<site-header root="../" active="tools"></site-header>
+
+<div class="wrapper">
 <div class="container">
     <h2>QR-Code Generator</h2>
 	<h4>Generate QR codes instantly from text, URLs, and other data with a single click.</h4>
@@ -92,6 +96,7 @@
     </div>
 
     <div id="qrcode"></div>
+</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

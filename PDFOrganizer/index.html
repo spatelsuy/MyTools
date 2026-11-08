@@ -24,12 +24,18 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
+    <link rel="stylesheet" href="../common.css">
+    <script src="../header.js"></script>
     <script src="LIB/pdf.min_2.12.313.js"></script>
     <script src="LIB/pdf-lib.min_1.17.1.js"></script>
  
     <style>
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+        }
+        .main-content {
             width: 90%;
             max-width: 1200px;
             margin: 0 auto;
@@ -228,7 +234,8 @@
 </head>
 
 <body>
-<div class="container-lg px-3 my-5 markdown-body">      
+<site-header root="../" active="tools"></site-header>
+<div class="main-content container-lg px-3 my-5 markdown-body">
     <h1>Offline PDF Page Organizer</h1>
     
     <p>Rearrange, shuffle, or reorder PDF pages visually. All processing is performed locally in your browser to ensure complete data privacy. Your files never leave your device.</p>
