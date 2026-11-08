@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Watermark</title>
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'none';
+                  script-src 'self' cdnjs.cloudflare.com 'wasm-unsafe-eval';
+                  style-src 'self' 'unsafe-inline';
+                  img-src 'self' data: blob:;
+                  font-src 'self';
+                  connect-src 'self';
+                  object-src 'none';
+                  frame-src 'none';
+                  base-uri 'self';
+                  form-action 'none'">
+    
+    <!-- Additional security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <script src="LIB/pdf.min_2.12.313.js"></script>
+    <script src="LIB/pdf-lib.min_1.17.1.js"></script>
+ 
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #16181c;
+        }
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .drop-area.highlight {
+            border-color: #1f6f54;
+            background-color: #f8fbf9;
+        }
+        #fileInput {
+            display: none;
+        }
+        .watermark-workspace {
+            display: none;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 800px) {
+            .watermark-workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+        .settings-panel {
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 20px;
+        }
+        .settings-panel h3 {
+            margin: 0 0 16px;
+            font-size: 16px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #374151;
+        }
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-row input[type="range"] {
+            flex: 1;
+        }
+        .slider-val {
+            font-size: 13px;
+            color: #4b5563;
+            width: 45px;
+            text-align: right;
+            font-weight: 600;
+        }
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-row input[type="color"] {
+            width: 40px;
+            height: 36px;
+            padding: 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background: none;
+        }
+        .preset-colors {
+            display: flex;
+            gap: 6px;
+        }
+        .color-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #ccc;
+        }
+        .preview-panel {
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .preview-panel h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+            align-self: flex-start;
+        }
+        .preview-canvas-wrapper {
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            background: #fff;
+            max-width: 100%;
+            overflow: hidden;
+        }
+        #previewCanvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        .preview-info {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 8px;
+        }
+        .action-bar {
+            display: none;
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .filename-group {
+            margin-bottom: 16px;
+        }
+        .filename-group label {
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        .filename-group input {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 280px;
+            max-width: 100%;
+        }
+        #downloadBtn {
+            background-color: #1f6f54;
+            color: white;
+            padding: 10px 22px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #downloadBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        footer a {
+            color: #1f6f54;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container-lg px-3 my-5 markdown-body">      
+    <h1>Offline PDF Watermark</h1>
+    
+    <p>Add customizable text watermarks to your PDF documents. All processing is performed locally in your browser to ensure complete data privacy. Your files never leave your device.</p>
+    
+    <div class="drop-area" id="dropArea">
+        <p>Drag & drop a PDF file here or click to select</p>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="watermark-workspace" id="workspace">
+        <div class="settings-panel">
+            <h3>Watermark Options</h3>
+            
+            <div class="form-group">
+                <label for="watermarkText">Watermark Text:</label>
+                <input type="text" id="watermarkText" value="CONFIDENTIAL" placeholder="e.g. CONFIDENTIAL, DRAFT">
+            </div>
+
+            <div class="form-group">
+                <label for="fontSizeSlider">Font Size: <span class="slider-val" id="fontSizeVal">50px</span></label>
+                <div class="slider-row">
+                    <input type="range" id="fontSizeSlider" min="16" max="120" value="50">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="opacitySlider">Opacity: <span class="slider-val" id="opacityVal">30%</span></label>
+                <div class="slider-row">
+                    <input type="range" id="opacitySlider" min="5" max="100" value="30">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="angleSlider">Rotation Angle: <span class="slider-val" id="angleVal">45°</span></label>
+                <div class="slider-row">
+                    <input type="range" id="angleSlider" min="-90" max="90" value="45">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Color:</label>
+                <div class="color-row">
+                    <input type="color" id="watermarkColor" value="#dc2626">
+                    <div class="preset-colors">
+                        <span class="color-dot" data-color="#dc2626" style="background:#dc2626;" title="Red"></span>
+                        <span class="color-dot" data-color="#4b5563" style="background:#4b5563;" title="Gray"></span>
+                        <span class="color-dot" data-color="#2563eb" style="background:#2563eb;" title="Blue"></span>
+                        <span class="color-dot" data-color="#16a34a" style="background:#16a34a;" title="Green"></span>
+                        <span class="color-dot" data-color="#000000" style="background:#000000;" title="Black"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <h3>Live Preview (Page 1)</h3>
+            <div class="preview-canvas-wrapper">
+                <canvas id="previewCanvas"></canvas>
+            </div>
+            <div class="preview-info" id="previewInfo">Page 1 preview</div>
+        </div>
+    </div>
+
+    <div class="action-bar" id="actionBar">
+        <div class="filename-group">
+            <label for="fileNameInput">Output File Name:</label>
+            <input type="text" id="fileNameInput" placeholder="watermarked.pdf" value="watermarked.pdf">
+        </div>
+        <button id="downloadBtn">Apply Watermark &amp; Download</button>
+    </div>
+    
+    <footer>
+        <p>JavaScript Libraries: <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (v2.12.313) &bull; <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">PDF-Lib</a> (v1.17.1)</p>
+    </footer>
+    
+    <script src="app.js"></script>
+</div>
+</body>
+</html>
