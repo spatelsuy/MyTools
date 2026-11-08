@@ -14,9 +14,12 @@ const progressText = document.getElementById('progressText');
 const progressPercent = document.getElementById('progressPercent');
 const progressBarFill = document.getElementById('progressBarFill');
 const resultCard = document.getElementById('resultCard');
+const resultTitle = document.getElementById('resultTitle');
 const statOriginalSize = document.getElementById('statOriginalSize');
 const statCompressedSize = document.getElementById('statCompressedSize');
 const statReduction = document.getElementById('statReduction');
+const resultNote = document.getElementById('resultNote');
+const downloadAnywayContainer = document.getElementById('downloadAnywayContainer');
 const actionBar = document.getElementById('actionBar');
 const fileNameInput = document.getElementById('fileNameInput');
 const compressBtn = document.getElementById('compressBtn');
@@ -220,27 +223,7 @@ async function compressAndDownload() {
 
         statOriginalSize.textContent = formatBytes(originalBytes);
         statCompressedSize.textContent = formatBytes(compressedBytes);
-
-        // Remove any previous note
-        const existingNote = resultCard.querySelector('.result-note');
-        if (existingNote) existingNote.remove();
-
-        if (compressedBytes < originalBytes) {
-            const reductionRatio = Math.round((1 - compressedBytes / originalBytes) * 100);
-            statReduction.className = 'reduction-badge';
-            statReduction.textContent = `-${reductionRatio}% Reduction`;
-        } else {
-            const increaseRatio = Math.round(((compressedBytes - originalBytes) / originalBytes) * 100);
-            statReduction.className = 'reduction-badge no-reduction';
-            statReduction.textContent = `+${increaseRatio}% (No reduction)`;
-
-            const note = document.createElement('div');
-            note.className = 'result-note';
-            note.innerHTML = `<strong>Note:</strong> Your original PDF already contains highly compressed vector text/data. Converting vector text to images increases file size. For vector documents, try <strong>Lossless Stream Optimization</strong>.`;
-            resultCard.appendChild(note);
-        }
-
-        resultCard.style.display = 'block';
+        downloadAnywayContainer.innerHTML = '';
 
         let filename = fileNameInput ? fileNameInput.value.trim() : '';
         if (!filename) {
@@ -249,15 +232,46 @@ async function compressAndDownload() {
             filename += '.pdf';
         }
 
-        const blob = new Blob([compressedPdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        function triggerDownload(bytes, name) {
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        if (compressedBytes < originalBytes) {
+            const reductionRatio = Math.round((1 - compressedBytes / originalBytes) * 100);
+            resultCard.className = 'result-card success';
+            resultTitle.textContent = 'Compression Successful!';
+            statReduction.className = 'reduction-badge';
+            statReduction.textContent = `-${reductionRatio}% Reduction`;
+            resultNote.textContent = 'Your compressed PDF was generated and downloaded successfully.';
+
+            triggerDownload(compressedPdfBytes, filename);
+        } else {
+            resultCard.className = 'result-card warning';
+            resultTitle.textContent = 'Document Already Optimized';
+            statReduction.className = 'reduction-badge no-reduction';
+            statReduction.textContent = 'No Reduction Possible';
+
+            resultNote.innerHTML = `<strong>Notice:</strong> Your original document is already highly compact vector text and cannot be reduced further with this setting without quality loss. <strong>No file was downloaded</strong> to prevent storing a larger file. For text-heavy documents, try selecting <em>Lossless Stream Optimization</em>.`;
+
+            const downloadAnywayBtn = document.createElement('button');
+            downloadAnywayBtn.type = 'button';
+            downloadAnywayBtn.className = 'btn-download-anyway';
+            downloadAnywayBtn.textContent = `Download Larger Version Anyway (${formatBytes(compressedBytes)})`;
+            downloadAnywayBtn.addEventListener('click', () => {
+                triggerDownload(compressedPdfBytes, filename);
+            });
+            downloadAnywayContainer.appendChild(downloadAnywayBtn);
+        }
+
+        resultCard.style.display = 'block';
 
     } catch (error) {
         console.error('Error compressing PDF:', error);

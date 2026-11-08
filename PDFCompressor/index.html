@@ -161,15 +161,26 @@
         }
         .result-card {
             display: none;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
             border-radius: 6px;
             padding: 16px 20px;
             margin-bottom: 20px;
         }
-        .result-card h4 {
+        .result-card.success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+        .result-card.success h4 {
             margin: 0 0 8px;
             color: #166534;
+            font-size: 15px;
+        }
+        .result-card.warning {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+        }
+        .result-card.warning h4 {
+            margin: 0 0 8px;
+            color: #92400e;
             font-size: 15px;
         }
         .result-stats {
@@ -188,13 +199,26 @@
             font-size: 12px;
         }
         .reduction-badge.no-reduction {
-            background: #6b7280;
+            background: #d97706;
         }
         .result-note {
             margin-top: 10px;
             font-size: 13px;
             color: #4b5563;
             line-height: 1.4;
+        }
+        .btn-download-anyway {
+            margin-top: 12px;
+            background: #4b5563;
+            color: white;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-download-anyway:hover {
+            background: #374151;
         }
         .action-bar {
             display: none;
@@ -303,12 +327,14 @@
     </div>
 
     <div class="result-card" id="resultCard">
-        <h4>Compression Successful!</h4>
+        <h4 id="resultTitle">Compression Result</h4>
         <div class="result-stats">
             <div>Original: <strong id="statOriginalSize">0 KB</strong></div>
             <div>Compressed: <strong id="statCompressedSize">0 KB</strong></div>
-            <div>Saved: <span class="reduction-badge" id="statReduction">0% Reduction</span></div>
+            <div>Outcome: <span class="reduction-badge" id="statReduction">0% Reduction</span></div>
         </div>
+        <div class="result-note" id="resultNote"></div>
+        <div id="downloadAnywayContainer"></div>
     </div>
 
     <div class="action-bar" id="actionBar">
