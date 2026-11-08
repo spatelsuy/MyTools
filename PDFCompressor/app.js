@@ -68,6 +68,17 @@ presetCards.forEach(card => {
 
 compressBtn.addEventListener('click', compressAndDownload);
 
+function dataUrlToUint8Array(dataUrl) {
+    const base64 = dataUrl.split(',')[1];
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+}
+
 function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -157,8 +168,7 @@ async function compressAndDownload() {
             }).promise;
 
             const jpegDataUrl = canvas.toDataURL('image/jpeg', selectedQuality);
-            const jpegResponse = await fetch(jpegDataUrl);
-            const jpegBytes = await jpegResponse.arrayBuffer();
+            const jpegBytes = dataUrlToUint8Array(jpegDataUrl);
 
             const embeddedJpg = await newPdf.embedJpg(jpegBytes);
             const newPage = newPdf.addPage([baseViewport.width, baseViewport.height]);
