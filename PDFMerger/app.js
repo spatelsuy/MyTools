@@ -7,6 +7,7 @@ const dropArea = document.getElementById('dropArea');
 const fileInput = document.getElementById('fileInput');
 const thumbnailContainer = document.getElementById('thumbnailContainer');
 const mergeBtn = document.getElementById('mergeBtn');
+const fileNameInput = document.getElementById('fileNameInput');
 
 let pdfFiles = [];
 
@@ -253,7 +254,13 @@ async function mergePDFs() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'merged.pdf';
+        let filename = fileNameInput ? fileNameInput.value.trim() : '';
+        if (!filename) {
+            filename = 'merged.pdf';
+        } else if (!filename.toLowerCase().endsWith('.pdf')) {
+            filename += '.pdf';
+        }
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

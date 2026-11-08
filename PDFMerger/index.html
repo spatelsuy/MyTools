@@ -133,13 +133,28 @@
         .library-info ul {
             padding-left: 20px;
         }
+        .filename-group {
+            margin-bottom: 20px;
+        }
+        .filename-group label {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .filename-group input {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+            max-width: 100%;
+        }
         
     </style>
 </head>
 
 <body>
 <div class="container-lg px-3 my-5 markdown-body">      
-      <h1><a href="https://spatelsuy.github.io/MyTools/">MyTools</a> | Offline PDF Merger</h1>
+      <h1>Offline PDF Merger</h1>
     
     <!-- Library information display -->
     <div class="library-info">
@@ -164,6 +179,11 @@
     </div>
     
     <div id="thumbnailContainer"></div>
+    
+    <div class="filename-group">
+        <label for="fileNameInput">File Name:</label>
+        <input type="text" id="fileNameInput" placeholder="merged.pdf" value="merged.pdf">
+    </div>
     
     <button id="mergeBtn" disabled>Merge PDFs</button>
     
