@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Page Organizer &amp; Reorder</title>
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'none';
+                  script-src 'self' cdnjs.cloudflare.com 'wasm-unsafe-eval';
+                  style-src 'self' 'unsafe-inline';
+                  img-src 'self' data: blob:;
+                  font-src 'self';
+                  connect-src 'self';
+                  object-src 'none';
+                  frame-src 'none';
+                  base-uri 'self';
+                  form-action 'none'">
+    
+    <!-- Additional security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <script src="LIB/pdf.min_2.12.313.js"></script>
+    <script src="LIB/pdf-lib.min_1.17.1.js"></script>
+ 
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #16181c;
+        }
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .drop-area.highlight {
+            border-color: #1f6f54;
+            background-color: #f8fbf9;
+        }
+        #fileInput {
+            display: none;
+        }
+        .toolbar {
+            display: none;
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .toolbar-info {
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .toolbar-info strong {
+            color: #16181c;
+        }
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        #thumbnailContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .thumbnail-card {
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 8px;
+            width: 150px;
+            position: relative;
+            background: #fff;
+            transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+            cursor: grab;
+            user-select: none;
+        }
+        .thumbnail-card:hover {
+            border-color: #1f6f54;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .thumbnail-card.dragging {
+            opacity: 0.4;
+            border-style: dashed;
+            border-color: #1f6f54;
+            cursor: grabbing;
+        }
+        .thumbnail-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 8px;
+            border: 1px solid #eee;
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        .card-badges {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .pos-badge {
+            background: #1f6f54;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .original-badge {
+            background: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        .card-controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        .btn-nav {
+            flex: 1;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            border-radius: 3px;
+            padding: 4px 0;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+        }
+        .btn-nav:hover:not(:disabled) {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        .btn-nav:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .action-bar {
+            display: none;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .filename-group {
+            margin-bottom: 16px;
+        }
+        .filename-group label {
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        .filename-group input {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 280px;
+            max-width: 100%;
+        }
+        #saveBtn {
+            background-color: #1f6f54;
+            color: white;
+            padding: 10px 22px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #saveBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .status-msg {
+            display: inline-block;
+            margin-left: 12px;
+            font-size: 13px;
+            color: #6b7177;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        footer a {
+            color: #1f6f54;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container-lg px-3 my-5 markdown-body">      
+    <h1>Offline PDF Page Organizer</h1>
+    
+    <p>Rearrange, shuffle, or reorder PDF pages visually. All processing is performed locally in your browser to ensure complete data privacy. Your files never leave your device.</p>
+    
+    <div class="drop-area" id="dropArea">
+        <p>Drag & drop a PDF file here or click to select</p>
+        <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <div class="toolbar" id="toolbar">
+        <div class="toolbar-info" id="toolbarInfo">
+            Total pages: <strong id="totalPagesCount">0</strong> &bull; <em>Drag pages or use arrows to rearrange</em>
+        </div>
+        <div class="toolbar-actions">
+            <button type="button" class="btn-secondary" id="reverseBtn">Reverse Order</button>
+            <button type="button" class="btn-secondary" id="resetBtn">Reset to Original</button>
+        </div>
+    </div>
+    
+    <div id="thumbnailContainer"></div>
+    
+    <div class="action-bar" id="actionBar">
+        <div class="filename-group">
+            <label for="fileNameInput">Output File Name:</label>
+            <input type="text" id="fileNameInput" placeholder="rearranged.pdf" value="rearranged.pdf">
+        </div>
+        <button id="saveBtn" disabled>Save Rearranged PDF</button>
+        <span class="status-msg" id="statusMsg">Change the page order to enable save.</span>
+    </div>
+    
+    <footer>
+        <p>JavaScript Libraries: <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (v2.12.313) &bull; <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">PDF-Lib</a> (v1.17.1)</p>
+    </footer>
+    
+    <script src="app.js"></script>
+</div>
+</body>
+</html>
