@@ -120,18 +120,19 @@
             margin-top: 5px;
             word-break: break-all;
         }
-        .library-info {
-            background-color: #f8f9fa;
-            border-left: 4px solid #4CAF50;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-size: 14px;
+        footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6c757d;
         }
-        .library-info h3 {
-            margin-top: 0;
+        footer a {
+            color: #4CAF50;
+            text-decoration: none;
         }
-        .library-info ul {
-            padding-left: 20px;
+        footer a:hover {
+            text-decoration: underline;
         }
         .filename-group {
             margin-bottom: 20px;
@@ -156,22 +157,7 @@
 <div class="container-lg px-3 my-5 markdown-body">      
       <h1>Offline PDF Merger</h1>
     
-    <!-- Library information display -->
-    <div class="library-info">
-        <h3>JavaScript Libraries Used:</h3>
-        <ul>
-            <li><strong>PDF.min.js v2.12.313</strong> - PDF rendering library by Mozilla
-                <small>Loaded from: cdnjs.cloudflare.com</small>
-                <small>Official site: <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">mozilla.github.io/pdf.js</a></small>
-            </li>
-            <li><strong>PDF-Lib.min v1.17.1</strong> - PDF manipulation library
-                <small>Loaded from: cdnjs.cloudflare.com</small>
-                <small>Official site: <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">pdf-lib.js.org</a></small>
-            </li>
-        </ul>
-    </div>    
-    
-    <p>Select multiple PDF files to merge. All processing happens in your browser - your files never leave your computer.</p>
+    <p>Select multiple PDF files to merge. All processing is performed locally in your browser to ensure complete data privacy. Your files never leave your device.</p>
     
     <div class="drop-area" id="dropArea">
         <p>Drag & drop PDF files here or click to select</p>
@@ -186,6 +172,10 @@
     </div>
     
     <button id="mergeBtn" disabled>Merge PDFs</button>
+    
+    <footer>
+        <p>JavaScript Libraries: <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> (v2.12.313) &bull; <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">PDF-Lib</a> (v1.17.1)</p>
+    </footer>
     
     <script src="app.js"></script>
 </div>
