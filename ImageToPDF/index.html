@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Images to PDF | SPBasic Tools</title>
+<meta name="description" content="Convert photos to PDF and choose a print size for each one, from passport photos to full A4 pages. Runs in your browser, nothing is uploaded.">
+<link rel="stylesheet" href="../common.css">
+<script src="../header.js"></script>
+
+<style>
+:root{
+  --alert: #dc2626;
+}
+
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:3px}
+.wrap{max-width:62rem;margin:0 auto;padding:2rem 1.25rem 4rem}
+
+h1{font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.15;letter-spacing:-.02em;margin:0 0 .5rem;font-weight:700}
+.sub{color:var(--muted);margin:0 0 1.75rem;max-width:44rem;font-size:1.05rem}
+
+.drop{display:block;border:2px dashed var(--line);border-radius:var(--radius);background:var(--surface);padding:2.5rem 1rem;text-align:center;cursor:pointer;transition:border-color .15s, background-color .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background-color:var(--accent-soft)}
+.drop:focus-within{outline:3px solid var(--accent);outline-offset:3px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop strong{display:block;font-size:1.1rem;margin-bottom:.25rem}
+.drop span{color:var(--muted);font-size:.95rem}
+
+.btn{font:inherit;font-weight:600;border-radius:6px;padding:.7rem 1.4rem;cursor:pointer;border:2px solid var(--accent);background:var(--accent);color:#ffffff;transition:filter .15s, border-color .15s}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn.alt{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.alt:hover:not(:disabled){border-color:var(--muted);background:var(--surface)}
+.btn.small{padding:.3rem .7rem;font-size:.9rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.settings{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;margin:1.5rem 0 1rem}
+label.f{display:flex;flex-direction:column;gap:.25rem;font-size:.9rem;color:var(--muted);font-weight:600}
+select,input[type=number]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:.45rem .5rem;outline:none}
+select:focus,input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+input[type=number]{width:5rem}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:1rem;margin:1rem 0 0;padding:0;list-style:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:.85rem;display:flex;flex-direction:column;gap:.6rem;box-shadow:0 1px 3px rgba(0,0,0,0.02)}
+.thumbbox{height:150px;display:flex;align-items:center;justify-content:center;background:var(--bg);border-radius:6px}
+.thumb{background:#fff;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
+.thumb img{display:block;width:100%;height:100%}
+.name{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dim{color:var(--muted);font-size:.85rem;margin:0}
+.card select{width:100%}
+.custom{display:flex;gap:.5rem;align-items:center}
+.row{display:flex;justify-content:space-between;align-items:center;gap:.5rem;font-size:.9rem}
+.row label{display:flex;align-items:center;gap:.4rem}
+.tools{display:flex;gap:.4rem}
+
+.actions{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin:1.5rem 0 .5rem}
+#status{margin:.5rem 0 0;min-height:1.5rem;font-size:.95rem;font-weight:500}
+#status.err{color:var(--alert)}
+.hint{color:var(--muted);font-size:.9rem;margin:1rem 0 0;max-width:46rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<site-header root="../" active="tools"></site-header>
+
+<main class="wrap">
+  <h1>Images to PDF</h1>
+  <p class="sub">Add photos of any size or type, choose a print size for each one, then convert. Small photos such as passport sizes are placed side by side on the same page. Everything runs locally in your browser.</p>
+
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept="image/*" multiple>
+    <strong>Choose photos or drop them here</strong>
+    <span>JPG, PNG, WebP and other image types your browser can open</span>
+  </label>
+
+  <div id="workspace" hidden>
+    <div class="settings">
+      <label class="f">Page size
+        <select id="page">
+          <option value="a4">A4 (210 × 297 mm)</option>
+          <option value="letter">Letter (8.5 × 11 in)</option>
+          <option value="a5">A5 (148 × 210 mm)</option>
+          <option value="a3">A3 (297 × 420 mm)</option>
+        </select>
+      </label>
+      <label class="f">Orientation
+        <select id="orient">
+          <option value="p">Portrait</option>
+          <option value="l">Landscape</option>
+        </select>
+      </label>
+      <label class="f">Margin (mm)
+        <input type="number" id="margin" min="0" max="50" value="10">
+      </label>
+      <label class="f">If the shape differs
+        <select id="shape">
+          <option value="crop">Crop to fill the size</option>
+          <option value="fit">Keep whole photo, add white edges</option>
+        </select>
+      </label>
+      <label class="f">Set every photo to
+        <select id="all"><option value="">Choose a size…</option></select>
+      </label>
+    </div>
+
+    <ul class="cards" id="cards"></ul>
+
+    <div class="actions">
+      <button class="btn" id="convert">Convert to PDF</button>
+      <button class="btn alt" id="clear">Remove all photos</button>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p class="hint">Print the PDF at 100% or “Actual size” so photos keep their exact dimensions. Photos larger than the page are scaled down to fit. This tool sets size and layout only. It does not check whether a photo meets official passport or visa rules.</p>
+  </div>
+</main>
+
+<script src="LIB/pdf-lib.min_1.17.1.js"></script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var DPI = 300;
+  var SIZES = [
+    { id:'fit',      label:'Full page (one per page)', fit:true },
+    { id:'passport', label:'Passport 35 × 45 mm', w:35, h:45 },
+    { id:'us2',      label:'US passport 2 × 2 in', w:50.8, h:50.8 },
+    { id:'wallet',   label:'Wallet 2.5 × 3.5 in', w:63.5, h:88.9 },
+    { id:'4x6',      label:'Photo 4 × 6 in', w:101.6, h:152.4 },
+    { id:'5x7',      label:'Photo 5 × 7 in', w:127, h:177.8 },
+    { id:'a6',       label:'A6 postcard 105 × 148 mm', w:105, h:148 },
+    { id:'a5',       label:'A5 148 × 210 mm', w:148, h:210 },
+    { id:'custom',   label:'Custom size…' }
+  ];
+  var PAGES = { a4:[210,297], letter:[215.9,279.4], a5:[148,210], a3:[297,420] };
+  var items = [], nextId = 1;
+
+  function sizeOptions(withCustom, selected){
+    return SIZES.filter(function(s){ return withCustom || s.id !== 'custom'; }).map(function(s){
+      return '<option value="'+s.id+'"'+(s.id===selected?' selected':'')+'>'+s.label+'</option>';
+    }).join('');
+  }
+  $('all').innerHTML += sizeOptions(false);
+
+  function setStatus(msg, isErr){ var s = $('status'); s.textContent = msg; s.className = isErr ? 'err' : ''; }
+  var mm = function(v){ return v * 72 / 25.4; };
+  var fmtMm = function(v){ return String(Math.round(v*10)/10); };
+
+  /* ---------- Adding photos ---------- */
+  function loadImage(file){
+    return new Promise(function(res, rej){
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function(){ res({ img:img, url:url }); };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(file.name); };
+      img.src = url;
+    });
+  }
+  function addFiles(fileList){
+    var files = Array.prototype.filter.call(fileList, function(f){ return f.type.indexOf('image/') === 0; });
+    if (!files.length){ setStatus('No image files found. Choose JPG, PNG or WebP photos.', true); return; }
+    var failed = [];
+    Promise.all(files.map(function(f){
+      return loadImage(f).then(function(r){
+        items.push({ id:nextId++, name:f.name, img:r.img, url:r.url, iw:r.img.naturalWidth, ih:r.img.naturalHeight,
+                     size:'fit', cw:35, ch:45, rotate:false, copies:1 });
+      }, function(name){ failed.push(name); });
+    })).then(function(){
+      renderCards();
+      setStatus(failed.length ? 'Couldn’t read: ' + failed.join(', ') + '. Try JPG, PNG or WebP.' : '', !!failed.length);
+    });
+  }
+  $('file').onchange = function(){ addFiles(this.files); this.value = ''; };
+  var drop = $('drop');
+  ['dragenter','dragover'].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function(e){ addFiles(e.dataTransfer.files); });
+
+  /* ---------- Cards ---------- */
+  function dimsOf(it){
+    if (it.size === 'fit') return null;
+    var s = SIZES.filter(function(x){ return x.id === it.size; })[0];
+    var w = it.size === 'custom' ? it.cw : s.w, h = it.size === 'custom' ? it.ch : s.h;
+    w = Math.max(5, +w || 5); h = Math.max(5, +h || 5);
+    return it.rotate ? { w:h, h:w } : { w:w, h:h };
+  }
+  function updateCard(it, card){
+    var d = dimsOf(it), w = d ? d.w : it.iw, h = d ? d.h : it.ih;
+    var k = Math.min(150/w, 150/h), t = card.querySelector('.thumb');
+    t.style.width = (w*k) + 'px'; t.style.height = (h*k) + 'px';
+    t.firstChild.style.objectFit = (!d || $('shape').value === 'crop') ? 'cover' : 'contain';
+    card.querySelector('.dim').textContent = d ? fmtMm(d.w) + ' × ' + fmtMm(d.h) + ' mm' : 'Scaled to fit one page';
+    card.querySelector('.custom').hidden = it.size !== 'custom';
+    card.querySelector('.rot').hidden = it.size === 'fit';
+  }
+  function renderCards(){
+    $('workspace').hidden = items.length === 0;
+    var ul = $('cards'); ul.innerHTML = '';
+    items.forEach(function(it, i){
+      var li = document.createElement('li'); li.className = 'card';
+      li.innerHTML =
+        '<div class="thumbbox"><div class="thumb"></div></div>' +
+        '<div class="name"></div><p class="dim"></p>' +
+        '<select class="size">' + sizeOptions(true, it.size) + '</select>' +
+        '<div class="custom" hidden><input type="number" class="cw" min="5" max="400" value="'+it.cw+'"> × <input type="number" class="ch" min="5" max="400" value="'+it.ch+'"> mm</div>' +
+        '<div class="row"><label class="rot"><input type="checkbox" class="rotate"'+(it.rotate?' checked':'')+'> Rotate size</label>' +
+        '<label>Copies <input type="number" class="copies" min="1" max="50" value="'+it.copies+'"></label></div>' +
+        '<div class="row"><span class="tools"><button class="btn alt small left" aria-label="Move earlier">←</button><button class="btn alt small right" aria-label="Move later">→</button></span>' +
+        '<button class="btn alt small remove">Remove</button></div>';
+      var img = document.createElement('img'); img.src = it.url; img.alt = it.name;
+      li.querySelector('.thumb').appendChild(img);
+      li.querySelector('.name').textContent = it.name;
+      li.querySelector('.size').setAttribute('aria-label', 'Size for ' + it.name);
+      li.querySelector('.size').onchange = function(){ it.size = this.value; updateCard(it, li); };
+      li.querySelector('.cw').oninput = function(){ it.cw = +this.value; updateCard(it, li); };
+      li.querySelector('.ch').oninput = function(){ it.ch = +this.value; updateCard(it, li); };
+      li.querySelector('.rotate').onchange = function(){ it.rotate = this.checked; updateCard(it, li); };
+      li.querySelector('.copies').oninput = function(){ it.copies = Math.max(1, Math.min(50, +this.value || 1)); };
+      li.querySelector('.left').disabled = i === 0;
+      li.querySelector('.right').disabled = i === items.length - 1;
+      li.querySelector('.left').onclick = function(){ items.splice(i-1, 0, items.splice(i, 1)[0]); renderCards(); };
+      li.querySelector('.right').onclick = function(){ items.splice(i+1, 0, items.splice(i, 1)[0]); renderCards(); };
+      li.querySelector('.remove').onclick = function(){ URL.revokeObjectURL(it.url); items.splice(i, 1); renderCards(); };
+      ul.appendChild(li); updateCard(it, li);
+    });
+  }
+  $('shape').onchange = function(){
+    var cards = $('cards').children;
+    items.forEach(function(it, i){ updateCard(it, cards[i]); });
+  };
+  $('all').onchange = function(){
+    if (!this.value) return;
+    var v = this.value; items.forEach(function(it){ it.size = v; });
+    this.value = ''; renderCards();
+  };
+  $('clear').onclick = function(){
+    items.forEach(function(it){ URL.revokeObjectURL(it.url); });
+    items = []; renderCards(); setStatus('');
+  };
+
+  /* ---------- Layout ---------- */
+  function layout(list, pw, ph, margin, gap){
+    var uw = pw - 2*margin, uh = ph - 2*margin;
+    var pages = [[]], x = 0, y = 0, rowH = 0;
+    function np(){ if (pages[pages.length-1].length) pages.push([]); x = 0; y = 0; rowH = 0; }
+    list.forEach(function(it){
+      var d = dimsOf(it), w, h, cur;
+      if (!d){
+        np();
+        var s = Math.min(uw/it.iw, uh/it.ih); w = it.iw*s; h = it.ih*s;
+        pages[pages.length-1].push({ it:it, x:(uw-w)/2, y:(uh-h)/2, w:w, h:h });
+        np(); return;
+      }
+      w = d.w; h = d.h;
+      if (w > uw || h > uh){ var k = Math.min(uw/w, uh/h); w *= k; h *= k; }
+      if (x > 0 && x + w > uw + 0.01){ x = 0; y += rowH + gap; rowH = 0; }
+      if (y + h > uh + 0.01) np();
+      pages[pages.length-1].push({ it:it, x:x, y:y, w:w, h:h });
+      x += w + gap; rowH = Math.max(rowH, h);
+    });
+    return pages.filter(function(p){ return p.length; });
+  }
+
+  /* ---------- Rendering ---------- */
+  function toJpeg(p){
+    var it = p.it, cw = Math.max(1, Math.round(p.w/25.4*DPI)), ch = Math.max(1, Math.round(p.h/25.4*DPI));
+    var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    var g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, cw, ch);
+    g.imageSmoothingQuality = 'high';
+    var boxR = p.w/p.h, imgR = it.iw/it.ih;
+    if (it.size === 'fit' || Math.abs(boxR - imgR) < 0.002){
+      g.drawImage(it.img, 0, 0, cw, ch);
+    } else if ($('shape').value === 'crop'){
+      var sx = 0, sy = 0, sw = it.iw, sh = it.ih;
+      if (imgR > boxR){ sw = it.ih*boxR; sx = (it.iw - sw)/2; } else { sh = it.iw/boxR; sy = (it.ih - sh)/2; }
+      g.drawImage(it.img, sx, sy, sw, sh, 0, 0, cw, ch);
+    } else {
+      var dw = cw, dh = cw/imgR;
+      if (dh > ch){ dh = ch; dw = ch*imgR; }
+      g.drawImage(it.img, (cw-dw)/2, (ch-dh)/2, dw, dh);
+    }
+    return new Promise(function(res){ c.toBlob(function(b){ b.arrayBuffer().then(res); }, 'image/jpeg', 0.92); });
+  }
+
+  $('convert').onclick = async function(){
+    if (!items.length) return;
+    var btn = this; btn.disabled = true; setStatus('Converting…');
+    try {
+      var base = PAGES[$('page').value], land = $('orient').value === 'l';
+      var pw = land ? base[1] : base[0], ph = land ? base[0] : base[1];
+      var margin = Math.max(0, Math.min(50, +$('margin').value || 0));
+      var list = [];
+      items.forEach(function(it){ for (var i = 0; i < it.copies; i++) list.push(it); });
+      var pages = layout(list, pw, ph, margin, 3);
+
+      var doc = await PDFLib.PDFDocument.create(), cache = {};
+      for (var a = 0; a < pages.length; a++){
+        var page = doc.addPage([mm(pw), mm(ph)]);
+        for (var b = 0; b < pages[a].length; b++){
+          var p = pages[a][b];
+          var key = p.it.id + '|' + p.w.toFixed(2) + '|' + p.h.toFixed(2) + '|' + $('shape').value;
+          if (!cache[key]) cache[key] = await doc.embedJpg(await toJpeg(p));
+          page.drawImage(cache[key], { x:mm(margin + p.x), y:mm(ph - margin - p.y - p.h), width:mm(p.w), height:mm(p.h) });
+        }
+      }
+      var bytes = await doc.save();
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([bytes], { type:'application/pdf' }));
+      link.download = 'images.pdf'; link.click();
+      setTimeout(function(){ URL.revokeObjectURL(link.href); }, 2000);
+      setStatus('Done. Your PDF has ' + pages.length + (pages.length === 1 ? ' page' : ' pages') + ' with ' + list.length + (list.length === 1 ? ' photo.' : ' photos.'));
+    } catch (e) {
+      setStatus('Something went wrong while creating the PDF. Try fewer or smaller photos.', true);
+    }
+    btn.disabled = false;
+  };
+})();
+</script>
+</body>
+</html>

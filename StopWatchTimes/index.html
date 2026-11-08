@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stopwatch & Countdown Timer | SPBasic Tools</title>
+<meta name="description" content="Free online stopwatch with laps and countdown timer with alarm. Runs in your browser, no installs or sign-ups.">
+<link rel="stylesheet" href="../common.css">
+<script src="../header.js"></script>
+
+<style>
+:root{
+  --alert: #dc2626;
+}
+
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:3px}
+.wrap{max-width:46rem;margin:0 auto;padding:2rem 1.25rem 4rem}
+
+h1{font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.15;letter-spacing:-.02em;margin:0 0 .5rem;font-weight:700}
+.sub{color:var(--muted);margin:0 0 1.75rem;font-size:1.05rem}
+
+.tabs{display:flex;gap:.25rem;border-bottom:1px solid var(--line);margin-bottom:1.5rem}
+.tabs button{font:inherit;font-weight:600;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:.6rem 1rem;cursor:pointer;margin-bottom:-1px;transition:color .15s, border-color .15s}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.display{font-size:clamp(2.6rem,13vw,5.5rem);font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.75rem 1rem;margin:0 0 1.25rem}
+.display.done{color:var(--alert);border-color:var(--alert)}
+.display:fullscreen{display:flex;align-items:center;justify-content:center;background:var(--bg);border:0;border-radius:0;font-size:min(20vw,38vh)}
+
+.controls{display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.25rem}
+.btn{font:inherit;font-weight:600;border-radius:6px;padding:.7rem 1.4rem;cursor:pointer;border:2px solid var(--accent);background:var(--accent);color:#ffffff;min-width:6.5rem;transition:filter .15s, border-color .15s}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn.alt{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.alt:hover:not(:disabled){border-color:var(--muted);background:var(--surface)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.small{padding:.4rem .9rem;min-width:0;font-size:.9rem}
+
+.setter{display:flex;flex-wrap:wrap;align-items:flex-end;gap:1rem;margin-bottom:1rem}
+.setter label{display:flex;flex-direction:column;font-size:.9rem;color:var(--muted);gap:.25rem;font-weight:600}
+.setter input{font:inherit;font-size:1.25rem;width:5rem;padding:.5rem;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font-variant-numeric:tabular-nums;outline:none}
+.setter input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.presets{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.25rem;color:var(--muted);font-size:.9rem}
+
+.laps-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:1.5rem 0 .5rem;flex-wrap:wrap}
+.laps-head h2{font-size:1.15rem;font-weight:600;margin:0}
+.laps-tools{display:flex;gap:.5rem}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;margin-top:.5rem}
+th,td{text-align:left;padding:.5rem .25rem;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;font-size:.9rem}
+.empty{color:var(--muted);margin:0}
+
+.hint{color:var(--muted);font-size:.9rem;margin:2rem 0 0}
+kbd{font:inherit;font-size:.85rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 .35rem;background:var(--surface);color:var(--ink)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+
+<site-header root="../" active="tools"></site-header>
+
+<main class="wrap">
+  <h1>Stopwatch &amp; Countdown Timer</h1>
+  <p class="sub">Time laps, meetings, presentations and workouts. Everything runs locally in your browser.</p>
+
+  <div class="tabs" role="tablist" aria-label="Choose a tool">
+    <button role="tab" id="tab-sw" aria-controls="panel-sw" aria-selected="true">Stopwatch</button>
+    <button role="tab" id="tab-cd" aria-controls="panel-cd" aria-selected="false" tabindex="-1">Countdown</button>
+  </div>
+
+  <!-- Stopwatch -->
+  <section id="panel-sw" role="tabpanel" aria-labelledby="tab-sw">
+    <div class="display" id="sw-display">00:00:00.00</div>
+    <div class="controls">
+      <button class="btn" id="sw-start">Start</button>
+      <button class="btn alt" id="sw-lap" disabled>Lap</button>
+      <button class="btn alt" id="sw-reset" disabled>Reset</button>
+      <button class="btn alt" data-full="sw-display">Full screen</button>
+    </div>
+    <div class="laps-head">
+      <h2>Laps</h2>
+      <div class="laps-tools">
+        <button class="btn alt small" id="laps-copy" disabled>Copy</button>
+        <button class="btn alt small" id="laps-csv" disabled>Download CSV</button>
+      </div>
+    </div>
+    <p class="empty" id="laps-empty">No laps yet. Press Lap while the stopwatch is running.</p>
+    <table id="laps-table" hidden>
+      <thead><tr><th>Lap</th><th>Lap time</th><th>Total</th></tr></thead>
+      <tbody id="laps-body"></tbody>
+    </table>
+    <p class="hint">Shortcuts: <kbd>Space</kbd> start or pause, <kbd>L</kbd> lap, <kbd>R</kbd> reset.</p>
+  </section>
+
+  <!-- Countdown -->
+  <section id="panel-cd" role="tabpanel" aria-labelledby="tab-cd" hidden>
+    <div class="setter">
+      <label>Hours<input type="number" id="cd-h" min="0" max="99" value="0" inputmode="numeric"></label>
+      <label>Minutes<input type="number" id="cd-m" min="0" max="59" value="5" inputmode="numeric"></label>
+      <label>Seconds<input type="number" id="cd-s" min="0" max="59" value="0" inputmode="numeric"></label>
+    </div>
+    <div class="presets">
+      <span>Presets:</span>
+      <button class="btn alt small" data-preset="60">1 min</button>
+      <button class="btn alt small" data-preset="300">5 min</button>
+      <button class="btn alt small" data-preset="600">10 min</button>
+      <button class="btn alt small" data-preset="1500">25 min</button>
+      <button class="btn alt small" data-preset="3600">1 hour</button>
+    </div>
+    <div class="display" id="cd-display">00:05:00</div>
+    <div class="controls">
+      <button class="btn" id="cd-start">Start</button>
+      <button class="btn alt" id="cd-reset">Reset</button>
+      <button class="btn alt" data-full="cd-display">Full screen</button>
+    </div>
+    <p class="hint">The countdown sounds an alarm when it ends, so turn your volume up.</p>
+  </section>
+
+  <div class="sr" role="status" aria-live="assertive" id="live"></div>
+</main>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var BASE_TITLE = document.title;
+  var active = 'sw';
+  var p2 = function(n){ return String(n).padStart(2,'0'); };
+
+  function fmt(ms, centis){
+    ms = Math.max(0, ms);
+    var t = Math.floor(ms/10), c = t%100, s = Math.floor(t/100)%60,
+        m = Math.floor(t/6000)%60, h = Math.floor(t/360000);
+    return p2(h)+':'+p2(m)+':'+p2(s)+(centis ? '.'+p2(c) : '');
+  }
+
+  /* ---------- Tabs ---------- */
+  var tabs = { sw: $('tab-sw'), cd: $('tab-cd') };
+  var panels = { sw: $('panel-sw'), cd: $('panel-cd') };
+  function showTab(id){
+    active = id;
+    ['sw','cd'].forEach(function(k){
+      var on = k === id;
+      tabs[k].setAttribute('aria-selected', on);
+      tabs[k].tabIndex = on ? 0 : -1;
+      panels[k].hidden = !on;
+    });
+    tabs[id].focus();
+  }
+  tabs.sw.onclick = function(){ showTab('sw'); };
+  tabs.cd.onclick = function(){ showTab('cd'); };
+  [tabs.sw, tabs.cd].forEach(function(t){
+    t.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') showTab(active === 'sw' ? 'cd' : 'sw');
+    });
+  });
+
+  /* ---------- Stopwatch ---------- */
+  var sw = { run:false, start:0, base:0, laps:[], lastTotal:0 };
+  function swElapsed(){ return sw.base + (sw.run ? Date.now() - sw.start : 0); }
+  function swUi(){
+    $('sw-start').textContent = sw.run ? 'Pause' : (sw.base > 0 ? 'Resume' : 'Start');
+    $('sw-lap').disabled = !sw.run;
+    $('sw-reset').disabled = sw.run ? false : sw.base === 0;
+  }
+  function swToggle(){
+    if (sw.run){ sw.base += Date.now() - sw.start; sw.run = false; }
+    else { sw.start = Date.now(); sw.run = true; }
+    swUi();
+  }
+  function swLap(){
+    if (!sw.run) return;
+    var total = swElapsed();
+    sw.laps.push({ lap: total - sw.lastTotal, total: total });
+    sw.lastTotal = total;
+    renderLaps();
+  }
+  function swReset(){
+    sw.run = false; sw.base = 0; sw.laps = []; sw.lastTotal = 0;
+    renderLaps(); swUi();
+  }
+  function renderLaps(){
+    var has = sw.laps.length > 0;
+    $('laps-table').hidden = !has;
+    $('laps-empty').hidden = has;
+    $('laps-copy').disabled = !has;
+    $('laps-csv').disabled = !has;
+    var rows = '';
+    for (var i = sw.laps.length - 1; i >= 0; i--){
+      rows += '<tr><td>'+(i+1)+'</td><td>'+fmt(sw.laps[i].lap,true)+'</td><td>'+fmt(sw.laps[i].total,true)+'</td></tr>';
+    }
+    $('laps-body').innerHTML = rows;
+  }
+  function lapsCsv(){
+    var out = 'Lap,Lap time,Total\n';
+    sw.laps.forEach(function(l,i){ out += (i+1)+','+fmt(l.lap,true)+','+fmt(l.total,true)+'\n'; });
+    return out;
+  }
+  $('sw-start').onclick = swToggle;
+  $('sw-lap').onclick = swLap;
+  $('sw-reset').onclick = swReset;
+  $('laps-copy').onclick = function(){
+    var b = this;
+    if (navigator.clipboard) navigator.clipboard.writeText(lapsCsv()).then(function(){
+      b.textContent = 'Copied'; setTimeout(function(){ b.textContent = 'Copy'; }, 1500);
+    });
+  };
+  $('laps-csv').onclick = function(){
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lapsCsv()], { type:'text/csv' }));
+    a.download = 'laps.csv';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  };
+
+  /* ---------- Countdown ---------- */
+  var cd = { state:'idle', end:0, left:0 }; // idle | running | paused | done
+  var ac = null, alarmTimer = null;
+
+  function inputMs(){
+    var h = Math.min(99, +$('cd-h').value || 0), m = Math.min(59, +$('cd-m').value || 0), s = Math.min(59, +$('cd-s').value || 0);
+    return (h*3600 + m*60 + s) * 1000;
+  }
+  function setInputs(sec){
+    $('cd-h').value = Math.floor(sec/3600);
+    $('cd-m').value = Math.floor(sec/60)%60;
+    $('cd-s').value = sec%60;
+    if (cd.state !== 'running') cdReset();
+  }
+  function cdLeft(){ return cd.state === 'running' ? Math.max(0, cd.end - Date.now()) : cd.left; }
+  function cdUi(){
+    var label = { idle:'Start', running:'Pause', paused:'Resume', done:'Dismiss' }[cd.state];
+    $('cd-start').textContent = label;
+    $('cd-display').classList.toggle('done', cd.state === 'done');
+  }
+  function audio(){
+    if (!ac){ var C = window.AudioContext || window.webkitAudioContext; if (C) ac = new C(); }
+    if (ac && ac.state === 'suspended') ac.resume();
+  }
+  function beep(){
+    if (!ac) return;
+    var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+    o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + 0.3);
+  }
+  function startAlarm(){
+    var n = 0; beep();
+    alarmTimer = setInterval(function(){ beep(); if (++n >= 14) stopAlarm(); }, 700);
+  }
+  function stopAlarm(){ clearInterval(alarmTimer); alarmTimer = null; }
+
+  function cdFinish(){
+    cd.state = 'done'; cd.left = 0;
+    startAlarm(); cdUi();
+    $('live').textContent = 'Time’s up';
+  }
+  function cdToggle(){
+    audio();
+    if (cd.state === 'idle' || cd.state === 'paused'){
+      var ms = cd.state === 'idle' ? inputMs() : cd.left;
+      if (ms <= 0) return;
+      cd.end = Date.now() + ms; cd.state = 'running';
+    } else if (cd.state === 'running'){
+      cd.left = cdLeft(); cd.state = 'paused';
+    } else if (cd.state === 'done'){
+      cdReset(); return;
+    }
+    $('live').textContent = '';
+    cdUi();
+  }
+  function cdReset(){
+    stopAlarm(); cd.state = 'idle'; cd.left = 0;
+    $('live').textContent = '';
+    cdUi();
+  }
+  $('cd-start').onclick = cdToggle;
+  $('cd-reset').onclick = cdReset;
+  ['cd-h','cd-m','cd-s'].forEach(function(id){
+    $(id).addEventListener('input', function(){ if (cd.state === 'done') cdReset(); });
+  });
+  document.querySelectorAll('[data-preset]').forEach(function(b){
+    b.onclick = function(){ setInputs(+b.dataset.preset); };
+  });
+
+  /* ---------- Render loop (timestamp based, so background tabs stay accurate) ---------- */
+  function tick(){
+    $('sw-display').textContent = fmt(swElapsed(), true);
+
+    if (cd.state === 'running' && cdLeft() <= 0) cdFinish();
+    var ms = cd.state === 'idle' ? inputMs() : cdLeft();
+    $('cd-display').textContent = fmt(Math.ceil(ms/1000)*1000, false);
+
+    if (cd.state === 'running') document.title = $('cd-display').textContent + ' | SPBasic Tools';
+    else if (sw.run) document.title = fmt(swElapsed(), false) + ' | SPBasic Tools';
+    else document.title = BASE_TITLE;
+  }
+  setInterval(tick, 50);
+  tick(); swUi(); cdUi();
+
+  /* ---------- Full screen ---------- */
+  document.querySelectorAll('[data-full]').forEach(function(b){
+    b.onclick = function(){
+      var el = $(b.dataset.full);
+      if (el.requestFullscreen) el.requestFullscreen();
+    };
+  });
+
+  /* ---------- Keyboard shortcuts ---------- */
+  document.addEventListener('keydown', function(e){
+    var tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'BUTTON' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code === 'Space'){ e.preventDefault(); active === 'sw' ? swToggle() : cdToggle(); }
+    else if (e.key === 'l' || e.key === 'L'){ if (active === 'sw') swLap(); }
+    else if (e.key === 'r' || e.key === 'R'){ active === 'sw' ? swReset() : cdReset(); }
+  });
+})();
+</script>
+</body>
+</html>
