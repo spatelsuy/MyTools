@@ -24,8 +24,10 @@ const compressBtn = document.getElementById('compressBtn');
 let currentFile = null;
 let currentArrayBuffer = null;
 let totalPages = 0;
-let selectedScale = 1.2;
-let selectedQuality = 0.65;
+let selectedMode = 'raster';
+let selectedScale = 0.9;
+let selectedQuality = 0.50;
+let selectedMaxDim = 1000;
 
 // Drag & drop file upload
 dropArea.addEventListener('click', () => fileInput.click());
@@ -61,8 +63,10 @@ presetCards.forEach(card => {
         const radio = card.querySelector('input[type="radio"]');
         if (radio) radio.checked = true;
 
+        selectedMode = card.dataset.mode;
         selectedScale = parseFloat(card.dataset.scale);
         selectedQuality = parseFloat(card.dataset.quality);
+        selectedMaxDim = parseInt(card.dataset.maxdim, 10);
     });
 });
 
@@ -141,59 +145,100 @@ async function compressAndDownload() {
 
     try {
         const { PDFDocument } = PDFLib;
-        const newPdf = await PDFDocument.create();
-        const pdfDoc = await pdfjsLib.getDocument(currentArrayBuffer.slice(0)).promise;
+        let compressedPdfBytes;
 
-        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-            const pct = Math.round(((pageNum - 1) / totalPages) * 100);
-            progressBarFill.style.width = `${pct}%`;
-            progressPercent.textContent = `${pct}%`;
-            progressText.textContent = `Compressing page ${pageNum} of ${totalPages}...`;
+        if (selectedMode === 'stream') {
+            progressText.textContent = 'Optimizing PDF object streams...';
+            progressBarFill.style.width = '50%';
+            progressPercent.textContent = '50%';
 
-            // Give the browser time to update UI
-            await new Promise(resolve => setTimeout(resolve, 20));
+            await new Promise(resolve => setTimeout(resolve, 30));
 
-            const page = await pdfDoc.getPage(pageNum);
-            const baseViewport = page.getViewport({ scale: 1.0 });
-            const renderViewport = page.getViewport({ scale: selectedScale });
+            const originalPdf = await PDFDocument.load(currentArrayBuffer);
+            compressedPdfBytes = await originalPdf.save({ useObjectStreams: true });
 
-            const canvas = document.createElement('canvas');
-            canvas.width = renderViewport.width;
-            canvas.height = renderViewport.height;
+            progressBarFill.style.width = '100%';
+            progressPercent.textContent = '100%';
+        } else {
+            const newPdf = await PDFDocument.create();
+            const pdfDoc = await pdfjsLib.getDocument(currentArrayBuffer.slice(0)).promise;
 
-            const ctx = canvas.getContext('2d');
-            await page.render({
-                canvasContext: ctx,
-                viewport: renderViewport
-            }).promise;
+            for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                const pct = Math.round(((pageNum - 1) / totalPages) * 100);
+                progressBarFill.style.width = `${pct}%`;
+                progressPercent.textContent = `${pct}%`;
+                progressText.textContent = `Compressing page ${pageNum} of ${totalPages}...`;
 
-            const jpegDataUrl = canvas.toDataURL('image/jpeg', selectedQuality);
-            const jpegBytes = dataUrlToUint8Array(jpegDataUrl);
+                // Give the browser time to update UI
+                await new Promise(resolve => setTimeout(resolve, 20));
 
-            const embeddedJpg = await newPdf.embedJpg(jpegBytes);
-            const newPage = newPdf.addPage([baseViewport.width, baseViewport.height]);
+                const page = await pdfDoc.getPage(pageNum);
+                const baseViewport = page.getViewport({ scale: 1.0 });
 
-            newPage.drawImage(embeddedJpg, {
-                x: 0,
-                y: 0,
-                width: baseViewport.width,
-                height: baseViewport.height
-            });
+                // Calculate optimal scale without blowing up dimension caps
+                let scale = selectedScale;
+                const maxDim = Math.max(baseViewport.width, baseViewport.height);
+                if (selectedMaxDim > 0 && maxDim * scale > selectedMaxDim) {
+                    scale = selectedMaxDim / maxDim;
+                }
+
+                const renderViewport = page.getViewport({ scale: scale });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(renderViewport.width);
+                canvas.height = Math.round(renderViewport.height);
+
+                const ctx = canvas.getContext('2d');
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: renderViewport
+                }).promise;
+
+                const jpegDataUrl = canvas.toDataURL('image/jpeg', selectedQuality);
+                const jpegBytes = dataUrlToUint8Array(jpegDataUrl);
+
+                const embeddedJpg = await newPdf.embedJpg(jpegBytes);
+                const newPage = newPdf.addPage([baseViewport.width, baseViewport.height]);
+
+                newPage.drawImage(embeddedJpg, {
+                    x: 0,
+                    y: 0,
+                    width: baseViewport.width,
+                    height: baseViewport.height
+                });
+            }
+
+            progressBarFill.style.width = '100%';
+            progressPercent.textContent = '100%';
+            progressText.textContent = 'Finalizing compressed PDF...';
+
+            compressedPdfBytes = await newPdf.save({ useObjectStreams: true });
         }
-
-        progressBarFill.style.width = '100%';
-        progressPercent.textContent = '100%';
-        progressText.textContent = 'Finalizing compressed PDF...';
-
-        const compressedPdfBytes = await newPdf.save({ useObjectStreams: true });
 
         const originalBytes = currentFile.size;
         const compressedBytes = compressedPdfBytes.byteLength;
-        const reductionRatio = Math.max(0, Math.round((1 - compressedBytes / originalBytes) * 100));
 
         statOriginalSize.textContent = formatBytes(originalBytes);
         statCompressedSize.textContent = formatBytes(compressedBytes);
-        statReduction.textContent = `-${reductionRatio}% Reduction`;
+
+        // Remove any previous note
+        const existingNote = resultCard.querySelector('.result-note');
+        if (existingNote) existingNote.remove();
+
+        if (compressedBytes < originalBytes) {
+            const reductionRatio = Math.round((1 - compressedBytes / originalBytes) * 100);
+            statReduction.className = 'reduction-badge';
+            statReduction.textContent = `-${reductionRatio}% Reduction`;
+        } else {
+            const increaseRatio = Math.round(((compressedBytes - originalBytes) / originalBytes) * 100);
+            statReduction.className = 'reduction-badge no-reduction';
+            statReduction.textContent = `+${increaseRatio}% (No reduction)`;
+
+            const note = document.createElement('div');
+            note.className = 'result-note';
+            note.innerHTML = `<strong>Note:</strong> Your original PDF already contains highly compressed vector text/data. Converting vector text to images increases file size. For vector documents, try <strong>Lossless Stream Optimization</strong>.`;
+            resultCard.appendChild(note);
+        }
 
         resultCard.style.display = 'block';
 

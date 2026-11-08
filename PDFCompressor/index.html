@@ -187,6 +187,15 @@
             font-weight: bold;
             font-size: 12px;
         }
+        .reduction-badge.no-reduction {
+            background: #6b7280;
+        }
+        .result-note {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #4b5563;
+            line-height: 1.4;
+        }
         .action-bar {
             display: none;
             margin-top: 10px;
@@ -260,25 +269,25 @@
     </div>
 
     <div class="preset-container" id="presetContainer">
-        <div class="preset-title">Select Compression Level:</div>
+        <div class="preset-title">Select Compression Mode:</div>
         <div class="preset-grid">
-            <div class="preset-card selected" data-scale="1.2" data-quality="0.65">
+            <div class="preset-card selected" data-mode="raster" data-scale="0.9" data-quality="0.50" data-maxdim="1000">
                 <input type="radio" name="compressionPreset" id="presetRecommended" checked>
                 <span class="preset-tag">Recommended</span>
-                <h5>Balanced Quality</h5>
-                <p>Medium file size reduction with clear, crisp text and visuals.</p>
+                <h5>Balanced Compression</h5>
+                <p>Downsamples images &amp; scans with clear text legibility.</p>
             </div>
-            <div class="preset-card" data-scale="0.9" data-quality="0.45">
+            <div class="preset-card" data-mode="raster" data-scale="0.7" data-quality="0.35" data-maxdim="750">
                 <input type="radio" name="compressionPreset" id="presetExtreme">
                 <span class="preset-tag">Maximum Reduction</span>
                 <h5>Extreme Compression</h5>
-                <p>Smallest possible file size for strict email attachment limits.</p>
+                <p>Aggressive downsampling for heavy scans &amp; strict email limits.</p>
             </div>
-            <div class="preset-card" data-scale="1.5" data-quality="0.82">
-                <input type="radio" name="compressionPreset" id="presetLight">
-                <span class="preset-tag">Low Compression</span>
-                <h5>High Quality</h5>
-                <p>Gentle compression preserving maximum image details.</p>
+            <div class="preset-card" data-mode="stream" data-scale="0" data-quality="0" data-maxdim="0">
+                <input type="radio" name="compressionPreset" id="presetStream">
+                <span class="preset-tag">Vector / Text</span>
+                <h5>Lossless Stream Optimization</h5>
+                <p>Re-compresses PDF object streams while preserving 100% crisp vector text.</p>
             </div>
         </div>
     </div>
