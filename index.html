@@ -31,12 +31,16 @@
 
     /* ---------- Header ---------- */
     header{
+        background:var(--surface);
+        border-bottom:1px solid var(--line);
+    }
+    .header-inner{
         display:flex;
         align-items:center;
         justify-content:space-between;
         padding:18px 32px;
-        background:var(--surface);
-        border-bottom:1px solid var(--line);
+        max-width:1200px;
+        margin:0 auto;
     }
     .brand{
         display:flex;
@@ -51,6 +55,7 @@
         display:flex;
         align-items:center;
         gap:8px;
+        color:var(--ink);
     }
     .logo span{
         display:inline-block;
@@ -67,13 +72,25 @@
         letter-spacing:0;
         padding-left:18px;
     }
+    nav{
+        display:flex;
+        align-items:center;
+        gap:24px;
+    }
     nav a{
         text-decoration:none;
         color:var(--muted);
         font-size:14px;
-        margin-left:24px;
+        font-weight:500;
+        padding:4px 0;
+        border-bottom:2px solid transparent;
+        transition:color .15s ease, border-color .15s ease;
     }
     nav a:hover{ color:var(--ink); }
+    nav a[aria-current="page"]{
+        color:var(--ink);
+        border-bottom-color:var(--accent);
+    }
 
     /* ---------- Hero ---------- */
     .hero{
@@ -197,25 +214,11 @@
         font-size:15px;
     }
 
-    /* ---------- Footer ---------- */
-    footer{
-        border-top:1px solid var(--line);
-        padding:28px 32px;
-        text-align:center;
-        color:var(--muted);
-        font-size:13px;
-    }
-    footer a{
-        color:var(--muted);
-        text-decoration:none;
-        margin:0 8px;
-    }
-    footer a:hover{ color:var(--accent); }
-
     /* ---------- Mobile ---------- */
     @media (max-width: 768px){
-        header{ padding:14px 18px; }
-        nav a{ margin-left:14px; font-size:13px; }
+        .header-inner{ padding:14px 18px; flex-wrap:wrap; gap:12px; }
+        nav{ gap:16px; }
+        nav a{ font-size:13px; }
         .hero{ padding:40px 16px 24px; }
         .hero h1{ font-size:28px; }
         .hero p{ font-size:15px; }
@@ -227,14 +230,17 @@
 <body>
 
 <header>
-    <div class="brand">
-        <a href="/" class="logo"><span></span>SPBasic Tools</a>
-        <p class="tagline">Simple and practical utilities for everyday tasks.</p>
+    <div class="header-inner">
+        <div class="brand">
+            <a href="index.html" class="logo"><span></span>SPBasic Tools</a>
+            <p class="tagline">Simple and practical utilities for everyday tasks.</p>
+        </div>
+        <nav aria-label="Main">
+            <a href="index.html" aria-current="page">Tools</a>
+            <a href="about.html">About</a>
+            <a href="https://www.youtube.com/watch?v=nhKAyrSPhgI&t=11s" target="_blank" rel="noopener noreferrer">Feedback</a>
+        </nav>
     </div>
-    <nav>
-        <a href="about.html">About</a>
-        <a href="/contact">Contact</a>
-    </nav>
 </header>
 
 <div class="hero">
@@ -319,13 +325,6 @@
 </div>
 
 <p class="empty-state" id="emptyState">No utilities match your search.</p>
-
-<footer>
-    &copy; 2026 SPBasic Utilities &middot;
-    <a href="/privacy">Privacy</a> &middot;
-    <a href="about.html">About</a> &middot;
-    <a href="/contact">Contact</a>
-</footer>
 
 <script>
     const input = document.getElementById('searchInput');
