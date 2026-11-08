@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>SPBasic Tools — Fast, free browser tools</title>
-<meta name="description" content="Fast, free browser-based tools for productivity, developers, security, AI and everyday work. No installs, no signups.">
+<meta name="description" content="Fast, free browser tools for productivity, development, security, AI, and everyday tasks. No installs, no sign-ups.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
     :root{
@@ -153,6 +153,18 @@
         border:1px solid var(--line);
         transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     }
+    .badge{
+        display:inline-block;
+        font-size:11px;
+        font-weight:600;
+        text-transform:uppercase;
+        letter-spacing:0.04em;
+        padding:2px 7px;
+        border-radius:4px;
+        background:var(--accent-soft);
+        color:var(--accent);
+        margin-bottom:10px;
+    }
     .tool-card h3{
         margin:0 0 6px;
         font-size:16px;
@@ -211,45 +223,51 @@
 
 <div class="hero">
     <h1>SPBasic Tools</h1>
-    <p>Fast, free browser tools for productivity, developers, security, AI and everyday work. No installs, no signups.</p>
+    <p>Fast, free browser tools for productivity, development, security, AI, and everyday tasks. No installs, no sign-ups.</p>
     <div class="search-box">
         <input type="text" id="searchInput" placeholder="Search tools..." aria-label="Search tools">
     </div>
 </div>
 
 <div class="tools" id="toolsGrid">
-    <a href="/PDFMerger" class="tool-link" data-name="pdf merger combine files">
+    <a href="/PDFMerger" class="tool-link" data-name="pdf merger combine files document">
         <div class="tool-card">
+            <span class="badge">PDF</span>
             <h3>PDF Merger</h3>
             <p>Combine multiple PDF files instantly.</p>
         </div>
     </a>
-    <a href="/image-optimizer" class="tool-link" data-name="image optimizer convert shrink resize">
+    <a href="/image-optimizer" class="tool-link" data-name="image optimizer convert shrink resize media">
         <div class="tool-card">
+            <span class="badge">Image</span>
             <h3>Image Optimizer</h3>
             <p>Convert and shrink high resolution pictures locally.</p>
         </div>
     </a>
-    <a href="/audio-recorder" class="tool-link" data-name="audio recorder microphone">
+    <a href="/audio-recorder" class="tool-link" data-name="audio recorder microphone sound">
         <div class="tool-card">
+            <span class="badge">Audio</span>
             <h3>Audio Recorder</h3>
             <p>Record, merge, and download microphone audio in your browser.</p>
         </div>
     </a>
-    <a href="/audio-editor" class="tool-link" data-name="audio editor cut trim">
+    <a href="/audio-editor" class="tool-link" data-name="audio editor cut trim sound">
         <div class="tool-card">
+            <span class="badge">Audio</span>
             <h3>Audio Editor</h3>
             <p>Listen to your track and capture real-time timestamps to compile custom cuts.</p>
         </div>
     </a>
-    <a href="/video-recorder" class="tool-link" data-name="video recorder camera">
+    <a href="/video-recorder" class="tool-link" data-name="video recorder camera media">
         <div class="tool-card">
+            <span class="badge">Video</span>
             <h3>Video Recorder</h3>
             <p>Record and download camera video with audio, right in your browser.</p>
         </div>
     </a>
-    <a href="/qrcode-generator" class="tool-link" data-name="qr code generator">
+    <a href="/qrcode-generator" class="tool-link" data-name="qr code generator utility tools">
         <div class="tool-card">
+            <span class="badge">Utility</span>
             <h3>QR Code Generator</h3>
             <p>Generate QR codes instantly from text, URLs, and other data.</p>
         </div>
