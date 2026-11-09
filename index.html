@@ -145,6 +145,27 @@
         font-size:15px;
     }
 
+    .hero-video-link{
+        margin:10px 0 24px;
+        font-size:14px;
+    }
+    .hero-video-link a{
+        color:var(--accent);
+        font-weight:600;
+        text-decoration:none;
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        padding:4px 12px;
+        border-radius:20px;
+        background:var(--accent-soft);
+        transition:filter .15s ease, transform .15s ease;
+    }
+    .hero-video-link a:hover{
+        filter:brightness(0.96);
+        transform:translateY(-1px);
+    }
+
     /* ---------- Mobile ---------- */
     @media (max-width: 768px){
         .hero{ padding:40px 16px 24px; }
@@ -162,6 +183,7 @@
 <div class="hero">
     <h1>Free, Private Browser Utilities</h1>
     <p>Fast client-side tools for productivity, development, security, and everyday tasks. No installs, no sign-ups.</p>
+    <p class="hero-video-link"><a href="https://www.youtube.com/watch?v=P0ZwJGeLymU" target="_blank" rel="noopener noreferrer">&#9654; Watch Overview on YouTube &nearr;</a></p>
     <div class="search-box">
         <input type="text" id="searchInput" placeholder="Search utilities..." aria-label="Search utilities">
     </div>
@@ -255,23 +277,6 @@
 </div>
 
 <p class="empty-state" id="emptyState">No utilities match your search.</p>
-
-<script>
-    const input = document.getElementById('searchInput');
-    const cards = Array.from(document.querySelectorAll('.tool-link'));
-    const emptyState = document.getElementById('emptyState');
-
-    input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        let visibleCount = 0;
-        cards.forEach(card => {
-            const match = card.dataset.name.includes(q);
-            card.style.display = match ? '' : 'none';
-            if (match) visibleCount++;
-        });
-        emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
-    });
-</script>
 
 </body>
 </html>
