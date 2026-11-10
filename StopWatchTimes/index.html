@@ -25,7 +25,9 @@ h1{font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.15;letter-spacing:-.02em;mar
 
 .display{font-size:clamp(2.6rem,13vw,5.5rem);font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.75rem 1rem;margin:0 0 1.25rem}
 .display.done{color:var(--alert);border-color:var(--alert)}
-.display:fullscreen{display:flex;align-items:center;justify-content:center;background:var(--bg);border:0;border-radius:0;font-size:min(20vw,38vh)}
+.stage.is-full{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;background:var(--bg);padding:1rem;overflow:auto}
+.stage.is-full .display{display:flex;align-items:center;justify-content:center;background:var(--bg);border:0;border-radius:0;font-size:min(16vw,30vh);margin:0;padding:0;width:100%}
+.stage.is-full .controls{justify-content:center;margin:0}
 
 .controls{display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.25rem}
 .btn{font:inherit;font-weight:600;border-radius:6px;padding:.7rem 1.4rem;cursor:pointer;border:2px solid var(--accent);background:var(--accent);color:#ffffff;min-width:6.5rem;transition:filter .15s, border-color .15s}
@@ -69,12 +71,14 @@ kbd{font:inherit;font-size:.85rem;border:1px solid var(--line);border-bottom-wid
 
   <!-- Stopwatch -->
   <section id="panel-sw" role="tabpanel" aria-labelledby="tab-sw">
-    <div class="display" id="sw-display">00:00:00.00</div>
-    <div class="controls">
-      <button class="btn" id="sw-start">Start</button>
-      <button class="btn alt" id="sw-lap" disabled>Lap</button>
-      <button class="btn alt" id="sw-reset" disabled>Reset</button>
-      <button class="btn alt" data-full="sw-display">Full screen</button>
+    <div class="stage" id="sw-stage">
+      <div class="display" id="sw-display">00:00:00.00</div>
+      <div class="controls">
+        <button class="btn" id="sw-start">Start</button>
+        <button class="btn alt" id="sw-lap" disabled>Lap</button>
+        <button class="btn alt" id="sw-reset" disabled>Reset</button>
+        <button class="btn alt" data-full="sw-stage">Full screen</button>
+      </div>
     </div>
     <div class="laps-head">
       <h2>Laps</h2>
@@ -106,11 +110,13 @@ kbd{font:inherit;font-size:.85rem;border:1px solid var(--line);border-bottom-wid
       <button class="btn alt small" data-preset="1500">25 min</button>
       <button class="btn alt small" data-preset="3600">1 hour</button>
     </div>
-    <div class="display" id="cd-display">00:05:00</div>
-    <div class="controls">
-      <button class="btn" id="cd-start">Start</button>
-      <button class="btn alt" id="cd-reset">Reset</button>
-      <button class="btn alt" data-full="cd-display">Full screen</button>
+    <div class="stage" id="cd-stage">
+      <div class="display" id="cd-display">00:05:00</div>
+      <div class="controls">
+        <button class="btn" id="cd-start">Start</button>
+        <button class="btn alt" id="cd-reset">Reset</button>
+        <button class="btn alt" data-full="cd-stage">Full screen</button>
+      </div>
     </div>
     <p class="hint">The countdown sounds an alarm when it ends, so turn your volume up.</p>
   </section>
@@ -300,11 +306,44 @@ kbd{font:inherit;font-size:.85rem;border:1px solid var(--line);border-bottom-wid
   tick(); swUi(); cdUi();
 
   /* ---------- Full screen ---------- */
+  // Uses the Fullscreen API where available; falls back to a fixed full-viewport
+  // layout (e.g. iPhone Safari, which only allows fullscreen for video).
+  function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function fsSync(){
+    var cur = fsElement();
+    document.querySelectorAll('[data-full]').forEach(function(b){
+      var el = $(b.dataset.full);
+      var on = cur === el || el.dataset.pseudo === '1';
+      el.classList.toggle('is-full', on);
+      b.textContent = on ? 'Exit full screen' : 'Full screen';
+    });
+  }
+  function fsExit(el){
+    el.dataset.pseudo = '0';
+    if (fsElement() === el){
+      var x = document.exitFullscreen || document.webkitExitFullscreen;
+      if (x) x.call(document);
+    }
+    fsSync();
+  }
   document.querySelectorAll('[data-full]').forEach(function(b){
     b.onclick = function(){
       var el = $(b.dataset.full);
-      if (el.requestFullscreen) el.requestFullscreen();
+      if (fsElement() === el || el.dataset.pseudo === '1') return fsExit(el);
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req){
+        var r = req.call(el);
+        if (r && r.catch) r.catch(function(){ el.dataset.pseudo = '1'; fsSync(); });
+      } else {
+        el.dataset.pseudo = '1';
+        fsSync();
+      }
     };
+  });
+  document.addEventListener('fullscreenchange', fsSync);
+  document.addEventListener('webkitfullscreenchange', fsSync);
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') document.querySelectorAll('.stage[data-pseudo="1"]').forEach(fsExit);
   });
 
   /* ---------- Keyboard shortcuts ---------- */
