@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SVG &amp; Favicon Generator | SPBasic Tools</title>
+  <meta name="description" content="Create SVG, ICO and website favicon files locally in your browser.">
+
+  <!-- Favicons & App Icons -->
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../favicon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="../favicon-16x16.png" type="image/png" sizes="16x16">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="manifest" href="../site.webmanifest">
+
+  <link rel="stylesheet" href="../common.css">
+  <link rel="stylesheet" href="/SVG-Favicon/style.css">
+  <script src="../header.js"></script>
+</head>
+<body>
+  <site-header root="../" active="tools"></site-header>
+
+  <main class="page">
+    <section class="intro">
+      <h1>SVG &amp; Favicon Generator</h1>
+      <p class="intro-copy">Design a simple icon or upload your own image, then export it as SVG, ICO, and the PNG sizes most commonly used by websites and apps.</p>
+      <p class="intro-copy">Everything runs locally in your browser using canvas and JavaScript. Your files stay on your device. This tool works entirely in your browser, so your image is never uploaded, stored, or sent to any external service. Close the page and your work is gone, with nothing left behind.</p>
+    </section>
+
+    <section class="workspace" aria-label="Favicon generator">
+      <div class="editor-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Create your icon</h2>
+            <p>Make it from text or from an image.</p>
+          </div>
+          <button class="text-button" id="resetButton" type="button">Reset</button>
+        </div>
+
+        <div class="mode-switch" role="group" aria-label="Creation method">
+          <button class="mode-button active" id="designModeButton" type="button" aria-pressed="true">From text</button>
+          <button class="mode-button" id="uploadModeButton" type="button" aria-pressed="false">From image</button>
+        </div>
+
+        <div id="designPanel" class="control-panel">
+          <div class="field-grid text-row">
+            <div class="text-field">
+              <label class="field-label" for="iconText">Text</label>
+              <input id="iconText" class="text-input" type="text" maxlength="4" value="S" placeholder="SP" autocomplete="off">
+            </div>
+            <div>
+              <label class="field-label" for="backgroundColor">Background color</label>
+              <div class="color-control"><input id="backgroundColor" type="color" value="#2457D6"><span id="backgroundValue">#2457D6</span></div>
+            </div>
+            <div>
+              <label class="field-label" for="textColor">Text color</label>
+              <div class="color-control"><input id="textColor" type="color" value="#FFFFFF"><span id="textValue">#FFFFFF</span></div>
+            </div>
+          </div>
+          <p class="field-help">Use up to 4 characters. Short text works best at small sizes.</p>
+
+          <div class="field-grid shape-row">
+            <div>
+              <label class="field-label" for="shapeSelect">Background shape</label>
+              <select id="shapeSelect" class="select-input">
+                <option value="rounded">Rounded square</option>
+                <option value="circle">Circle</option>
+                <option value="square">Square</option>
+                <option value="diamond">Diamond</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="fontSelect">Font</label>
+              <select id="fontSelect" class="select-input">
+                <option value="Arial, Helvetica, sans-serif">Arial</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+                <option value="Trebuchet MS, sans-serif">Trebuchet</option>
+                <option value="Courier New, monospace">Courier New</option>
+              </select>
+            </div>
+            <label class="check-row bold-check"><input id="boldText" type="checkbox" checked><span>Bold text</span></label>
+          </div>
+        </div>
+
+        <div id="uploadPanel" class="control-panel hidden">
+          <label class="field-label" for="imageFile">Choose an image</label>
+          <label class="upload-box" for="imageFile">
+            <input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp">
+            <span class="upload-icon" aria-hidden="true">↑</span>
+            <strong>Choose PNG, JPG or WebP</strong>
+            <span class="field-help">The image is opened and processed on this device.</span>
+          </label>
+          <p id="fileName" class="file-name">No image selected.</p>
+
+          <div class="field-grid">
+            <div>
+              <label class="field-label" for="uploadShape">Image shape</label>
+              <select id="uploadShape" class="select-input">
+                <option value="rounded">Rounded square</option>
+                <option value="circle">Circle</option>
+                <option value="square">Square</option>
+                <option value="diamond">Diamond</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="imageFit">Fit image</label>
+              <select id="imageFit" class="select-input">
+                <option value="contain">Fit inside</option>
+                <option value="cover">Fill shape (crop)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid color-grid">
+            <div>
+              <label class="field-label" for="uploadBackground">Background color</label>
+              <div class="color-control"><input id="uploadBackground" type="color" value="#FFFFFF"><span id="uploadBackgroundValue">#FFFFFF</span></div>
+            </div>
+            <div class="toggle-wrap">
+              <label class="check-row"><input id="useBackground" type="checkbox" checked><span>Show background</span></label>
+              <p class="field-help">Turn off for a transparent background.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="export-actions">
+          <button class="button button-primary" id="downloadPackageButton" type="button">Download favicon package <span aria-hidden="true">↓</span></button>
+          <div class="button-row">
+            <button class="button button-secondary" id="downloadSvgButton" type="button">Download SVG</button>
+            <button class="button button-secondary" id="downloadIcoButton" type="button">Download ICO</button>
+          </div>
+          <p id="statusMessage" class="status-message" role="status" aria-live="polite">Your icon is ready to export.</p>
+        </div>
+      </div>
+
+      <aside class="preview-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Live preview</h2>
+            <p>Preview at a larger size.</p>
+          </div>
+        </div>
+        <div class="preview-stage">
+          <canvas id="previewCanvas" width="512" height="512" aria-label="Icon preview"></canvas>
+        </div>
+        <div class="format-list">
+          <div><span class="format-icon">SVG</span><span><strong>Scalable vector</strong><small>Best for modern websites. Uploaded photos are embedded, not auto-traced.</small></span></div>
+          <div><span class="format-icon">ICO</span><span><strong>Windows / browser icon</strong><small>One ICO file containing multiple icon sizes.</small></span></div>
+          <div><span class="format-icon">PNG</span><span><strong>Website and app icons</strong><small>16, 32, 48, 180, 192 and 512 pixel images.</small></span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="how-to">
+      <h2>How to use the files</h2>
+      <ol>
+        <li>Download the favicon package ZIP.</li>
+        <li>Extract the files into your website's public or root folder.</li>
+        <li>Copy the HTML snippet from <strong>favicon-html-snippet.txt</strong> into the <code>&lt;head&gt;</code> section of your page.</li>
+        <li>Keep the filenames and folder paths in the snippet in sync with where you place the files.</li>
+      </ol>
+      <p class="small-note"><strong>SVG note:</strong> An icon created with text and shapes is a true vector SVG. When you upload a PNG/JPG/WebP, the SVG contains the original image as embedded data; it does not convert the photo into vector paths.</p>
+    </section>
+  </main>
+
+  <script src="/SVG-Favicon/app.js"></script>
+</body>
+</html>
