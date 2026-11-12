@@ -583,3 +583,43 @@ input:focus-visible {
     font-size: 10px;
   }
 }
+.rotate {
+  display: none;
+}
+/* Phones held upright: show a small reminder. Desktop windows (fine pointer) are not affected. */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 700px) {
+  .rotate.show {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(23, 32, 28, 0.45);
+  }
+  .rcard {
+    width: min(280px, 100%);
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+    text-align: center;
+  }
+  .rcard svg {
+    color: var(--accent);
+  }
+  .rcard h2 {
+    margin: 4px 0;
+  }
+  .rcard p {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .rcard .mbtn {
+    min-width: 90px;
+    padding: 6px 20px;
+  }
+}

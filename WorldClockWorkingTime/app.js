@@ -642,6 +642,10 @@ addEventListener("resize", () => {
     render();
   }
 });
+// Small "rotate your phone" reminder. It is only visible (via CSS) on upright phones; OK hides it for this visit.
+$("#rotate").classList.add("show");
+$("#rotateok").onclick = () => $("#rotate").classList.remove("show");
+
 // First-visit help popup. A separate storage key keeps it independent of the saved zones.
 const HELP_KEY = "overlap-tz-help";
 function showHelp() {
