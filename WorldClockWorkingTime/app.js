@@ -13,6 +13,8 @@ try {
   const r = JSON.parse(localStorage.getItem("overlap-tz"));
   if (r && Array.isArray(r.zones)) S = Object.assign(S, r);
 } catch (e) {}
+// Always open with a 30 minute meeting box that the user can stretch or shrink.
+S.dur = 30;
 const save = () => {
   try {
     localStorage.setItem("overlap-tz", JSON.stringify(S));
@@ -320,7 +322,7 @@ function render() {
     const set = (e) => {
       if (resize) {
         const st = T == null ? Date.now() : T;
-        S.dur = Math.max(0, Math.min(1440, Math.round((at(e) - st) / 9e5) * 15));
+        S.dur = Math.max(15, Math.min(1440, Math.round((at(e) - st) / 9e5) * 15));
         syncDur();
       } else T = Math.round(at(e) / 9e5) * 9e5;
       tick();
@@ -488,7 +490,21 @@ function durText() {
     m = S.dur % 60;
   return (h ? h + " hr" : "") + (h && m ? " " : "") + (m ? m + " min" : "");
 }
+function setDur(m) {
+  S.dur = Math.max(5, Math.min(1440, Math.round(m)));
+  save();
+  syncDur();
+  tick();
+}
+$("#durup").onclick = () => setDur((Math.floor(S.dur / 15) + 1) * 15);
+$("#durdn").onclick = () => setDur(Math.max(15, (Math.ceil(S.dur / 15) - 1) * 15));
+$("#durnum").onchange = (e) => {
+  const v = parseInt(e.target.value, 10);
+  if (isNaN(v)) syncDur();
+  else setDur(v);
+};
 function syncDur() {
+  if (document.activeElement !== $("#durnum")) $("#durnum").value = S.dur || "";
   $("#mdesc").textContent = S.dur
     ? durText() + " \u00b7 drag the right edge of the box to change"
     : "Drag the right edge of the line to set a meeting length";

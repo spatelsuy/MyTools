@@ -514,3 +514,72 @@ input:focus-visible {
   color: var(--muted);
   font-size: 12px;
 }
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 3px 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+}
+.step:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+#durnum {
+  width: 40px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+#durnum:focus-visible {
+  outline: 0;
+}
+#durnum::-webkit-outer-spin-button,
+#durnum::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.stepunit {
+  color: var(--muted);
+  font-size: 12px;
+}
+.stepbtns {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 2px;
+}
+.stepbtns button {
+  width: 22px;
+  height: 13px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1;
+  cursor: pointer;
+}
+.stepbtns button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+@media (max-width: 600px) {
+  #durnum {
+    width: 44px;
+    padding: 5px 0;
+  }
+  .stepbtns button {
+    width: 32px;
+    height: 18px;
+    font-size: 10px;
+  }
+}
