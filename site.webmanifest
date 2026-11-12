@@ -4,7 +4,7 @@
   "description": "Simple and practical utilities for everyday tasks.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f7f5",
+  "background_color": "#ffffff",
   "theme_color": "#1f6f54",
   "icons": [
     {
