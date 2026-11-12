@@ -1,6 +1,14 @@
 const $ = (s) => document.querySelector(s);
 const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-let S = { zones: ["America/Chicago", "America/Denver", "America/Los_Angeles"], ws: 9, we: 17, ds: 6, de: 18, win: 72 };
+let S = {
+  zones: ["America/Chicago", "America/Denver", "America/Los_Angeles"],
+  ws: 9,
+  we: 17,
+  ds: 6,
+  de: 18,
+  win: 72,
+  dur: 30,
+};
 try {
   const r = JSON.parse(localStorage.getItem("overlap-tz"));
   if (r && Array.isArray(r.zones)) S = Object.assign(S, r);
@@ -285,7 +293,7 @@ function sec(mode, title, foot) {
       return `<div class="zrow"><div class="zl"><span class="zn">${nm(z)}</span><span class="za">${abbr(z, mid)}</span>${mode === "w" ? `<span class="za">works ${wh(z)[0]} to ${wh(z)[1]}</span>` : ""}${i ? "" : '<span class="you">you</span>'}</div><div class="track">${pills}${labs}<span class="zmk" data-zm="${z}"></span></div></div>`;
     })
     .join("");
-  return `<section class="panel ${mode === "w" ? "work" : ""}"><h2>${title}</h2><div class="chart">${ruler()}${rows}<div class="layer"><div class="ln"></div><div class="bdg"><b class="bt"></b><small>your local time</small></div></div></div><p class="foot">${foot}</p></section>`;
+  return `<section class="panel ${mode === "w" ? "work" : ""}"><h2>${title}</h2><div class="chart">${ruler()}${rows}<div class="layer"><div class="box"><i class="rh" title="Drag to change the meeting length"></i></div><div class="bdg"><b class="bt"></b><small>your local time</small></div></div></div><p class="foot">${foot}</p></section>`;
 }
 const dateVal = (d) =>
   d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -303,23 +311,36 @@ function render() {
       "Light blue is daytime and dark blue is night in the current day of each zone. Grey is the days before and after.",
     ) + sec("w", "2. Working hours overlap", "Green is working time in the current day of each zone.");
   document.querySelectorAll(".chart").forEach((c) => {
-    let drag = false;
-    const set = (e) => {
+    let drag = false,
+      resize = false;
+    const at = (e) => {
       const r = c.getBoundingClientRect();
-      T = Math.round((W0 + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * Wms) / 6e4) * 6e4;
+      return W0 + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * Wms;
+    };
+    const set = (e) => {
+      if (resize) {
+        const st = T == null ? Date.now() : T;
+        S.dur = Math.max(0, Math.min(1440, Math.round((at(e) - st) / 9e5) * 15));
+        syncDur();
+      } else T = Math.round(at(e) / 9e5) * 9e5;
       tick();
+    };
+    const end = () => {
+      if (drag && resize) save();
+      drag = resize = false;
     };
     c.addEventListener("pointerdown", (e) => {
       if (e.target.closest("button")) return;
       drag = true;
+      resize = !!e.target.closest(".rh");
       c.setPointerCapture(e.pointerId);
-      set(e);
+      if (!resize) set(e);
     });
     c.addEventListener("pointermove", (e) => {
       if (drag) set(e);
     });
-    c.addEventListener("pointerup", () => (drag = false));
-    c.addEventListener("pointercancel", () => (drag = false));
+    c.addEventListener("pointerup", end);
+    c.addEventListener("pointercancel", end);
   });
   $("#clocks").innerHTML =
     zones()
@@ -368,31 +389,32 @@ function tick() {
       nd.toLocaleDateString(undefined, { timeZone: z, weekday: "short", month: "short", day: "numeric" }) +
       (h >= wh(z)[0] && h < wh(z)[1] ? "," : "");
   });
-  const f = (t - W0) / Wms,
-    vis = f >= 0 && f <= 1;
+  const dm = S.dur * 6e4,
+    f = (t - W0) / Wms,
+    fe = (t + dm - W0) / Wms,
+    vis = fe >= 0 && f <= 1,
+    mid = (f + fe) / 2,
+    half = S.dur ? 84 : 46,
+    en = new Date(t + dm);
+  const span = (z) =>
+    td.toLocaleString(undefined, { timeZone: z, weekday: "short", hour: "numeric", minute: "2-digit" }) +
+    (S.dur ? " \u2013 " + en.toLocaleTimeString(undefined, { timeZone: z, hour: "numeric", minute: "2-digit" }) : "");
   document.querySelectorAll("[data-zm]").forEach((e) => {
-    const z = e.dataset.zm;
     e.style.display = vis ? "block" : "none";
-    e.style.left = `clamp(46px,${f * 100}%,calc(100% - 46px))`;
-    e.textContent = td.toLocaleString(undefined, {
-      timeZone: z,
-      weekday: "short",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    e.style.left = `clamp(${half}px,${mid * 100}%,calc(100% - ${half}px))`;
+    e.textContent = span(e.dataset.zm);
   });
-  document.querySelectorAll(".ln").forEach((e) => {
+  document.querySelectorAll(".box").forEach((e) => {
     e.style.display = vis ? "block" : "none";
-    e.style.left = f * 100 + "%";
+    e.style.left = Math.max(f, 0) * 100 + "%";
+    e.style.width = (Math.min(fe, 1) - Math.max(f, 0)) * 100 + "%";
+    e.querySelector(".rh").style.display = fe > 1 ? "none" : "block";
   });
   document.querySelectorAll(".bdg").forEach((e) => {
     e.style.display = vis ? "block" : "none";
-    e.style.left = `clamp(46px,${f * 100}%,calc(100% - 46px))`;
-    e.querySelector(".bt").textContent = td.toLocaleString(undefined, {
-      weekday: "short",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    e.style.left = `clamp(${half}px,${mid * 100}%,calc(100% - ${half}px))`;
+    e.querySelector(".bt").textContent = span(undefined);
+    e.querySelector("small").textContent = "your local time" + (S.dur ? " \u00b7 " + durText() : "");
   });
   document.querySelectorAll(".pill").forEach((p) => p.classList.toggle("cur", t >= +p.dataset.s && t < +p.dataset.e));
   const lv = $("#live");
@@ -451,6 +473,117 @@ $("#clocks").onchange = (e) => {
   }
   render();
 };
+const nbsp = (s) => s.replace(/[\u202f\u00a0]/g, " ");
+function tzShort(z, d) {
+  let a = "";
+  try {
+    a = new Intl.DateTimeFormat("en-US", { timeZone: z, timeZoneName: "short" })
+      .formatToParts(d)
+      .find((x) => x.type === "timeZoneName").value;
+  } catch (e) {}
+  return /^(GMT|UTC)/.test(a) || !a ? off(z, d) : a;
+}
+function durText() {
+  const h = Math.floor(S.dur / 60),
+    m = S.dur % 60;
+  return (h ? h + " hr" : "") + (h && m ? " " : "") + (m ? m + " min" : "");
+}
+function syncDur() {
+  $("#mdesc").textContent = S.dur
+    ? durText() + " \u00b7 drag the right edge of the box to change"
+    : "Drag the right edge of the line to set a meeting length";
+  $("#outlook").disabled = $("#ics").disabled = !S.dur;
+  $("#outlook").title = $("#ics").title = S.dur ? "" : "Drag the right edge of the line to set a meeting length first";
+}
+// Builds the meeting from the box start (snapped to 15 min when the time line is live).
+function meeting() {
+  if (!S.dur) return null;
+  if (T == null) {
+    T = Math.ceil(Date.now() / 9e5) * 9e5;
+    tick();
+  }
+  const s = new Date(T),
+    e = new Date(T + S.dur * 6e4),
+    zs = zones(),
+    hm = { hour: "numeric", minute: "2-digit" };
+  // One line per time zone; the subject is left blank for the user to type.
+  const lines = zs.map((z) =>
+    nbsp(
+      nmt(z) +
+        ": " +
+        s.toLocaleString(undefined, {
+          timeZone: z,
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+          ...hm,
+        }) +
+        " - " +
+        e.toLocaleTimeString(undefined, { timeZone: z, ...hm }) +
+        " " +
+        tzShort(z, s),
+    ),
+  );
+  return { s, e, subject: "", lines, body: lines.join("\r\n") };
+}
+$("#outlook").onclick = () => {
+  const m = meeting();
+  if (!m) return;
+  // Local wall-clock time without a "Z", so Outlook shows the time exactly as selected here
+  // instead of converting it into the time zone configured in the Outlook account.
+  const p2 = (n) => String(n).padStart(2, "0"),
+    iso = (d) =>
+      `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}:00`,
+    q = encodeURIComponent;
+  window.open(
+    "https://outlook.office.com/calendar/0/deeplink/compose?path=" +
+      q("/calendar/action/compose") +
+      "&rru=addevent&startdt=" +
+      q(iso(m.s)) +
+      "&enddt=" +
+      q(iso(m.e)) +
+      "&subject=" +
+      q(m.subject) +
+      "&body=" +
+      q(m.lines.map((l) => l.replace(/&/g, "&amp;").replace(/</g, "&lt;")).join("<br>")),
+    "_blank",
+    "noopener",
+  );
+};
+$("#ics").onclick = () => {
+  const m = meeting();
+  if (!m) return;
+  const stamp = (d) =>
+      d
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\.\d{3}Z$/, "Z"),
+    esc = (s) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"),
+    fold = (l) => (l.length > 73 ? l.slice(0, 73) + "\r\n " + fold(l.slice(73)) : l);
+  const ics =
+    [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//SPBasic Tools//World Clock//EN",
+      "BEGIN:VEVENT",
+      "UID:" + Date.now() + Math.random().toString(36).slice(2) + "@spbasic",
+      "DTSTAMP:" + stamp(new Date()),
+      "DTSTART:" + stamp(m.s),
+      "DTEND:" + stamp(m.e),
+      "SUMMARY:" + esc(m.subject),
+      "DESCRIPTION:" + esc(m.body),
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ]
+      .map(fold)
+      .join("\r\n") + "\r\n";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+  a.download = "meeting.ics";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
 $("#live").onclick = () => {
   T = null;
   D = 0;
@@ -493,5 +626,32 @@ addEventListener("resize", () => {
     render();
   }
 });
+// First-visit help popup. A separate storage key keeps it independent of the saved zones.
+const HELP_KEY = "overlap-tz-help";
+function showHelp() {
+  $("#helpbox").hidden = false;
+  $("#helpok").focus();
+}
+function hideHelp() {
+  $("#helpbox").hidden = true;
+  try {
+    localStorage.setItem(HELP_KEY, "1");
+  } catch (e) {}
+  $("#help").focus();
+}
+$("#help").onclick = showHelp;
+$("#helpok").onclick = hideHelp;
+$("#helpbox").onclick = (e) => {
+  if (e.target === $("#helpbox")) hideHelp();
+};
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#helpbox").hidden) hideHelp();
+});
+syncDur();
 render();
 setInterval(tick, 1000);
+try {
+  if (!localStorage.getItem(HELP_KEY)) showHelp();
+} catch (e) {
+  showHelp();
+}
