@@ -242,7 +242,6 @@ input:focus-visible {
   position: relative;
   padding-top: 42px;
   touch-action: pan-y;
-  cursor: ew-resize;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -452,11 +451,16 @@ input:focus-visible {
 .bdg {
   position: absolute;
   top: 0;
+  height: 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   transform: translateX(-50%);
   background: var(--accent);
   color: var(--accent-ink);
   border-radius: 8px;
-  padding: 1px 10px 2px;
+  padding: 0 10px;
   text-align: center;
   line-height: 1.15;
   white-space: nowrap;
@@ -621,5 +625,27 @@ input:focus-visible {
   .rcard .mbtn {
     min-width: 90px;
     padding: 6px 20px;
+  }
+}
+/* Gray strip at the top of each chart (behind the green badge). Dragging it slides the meeting. */
+.slide {
+  position: absolute;
+  top: 11px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  border-radius: 5px;
+  background: #d5d9dd;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.slide:hover {
+  background: #c6cbd0;
+}
+@media (pointer: coarse) {
+  .slide {
+    top: 8px;
+    height: 16px;
+    border-radius: 8px;
   }
 }

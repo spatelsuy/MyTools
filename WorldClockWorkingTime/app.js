@@ -295,7 +295,7 @@ function sec(mode, title, foot) {
       return `<div class="zrow"><div class="zl"><span class="zn">${nm(z)}</span><span class="za">${abbr(z, mid)}</span>${mode === "w" ? `<span class="za">works ${wh(z)[0]} to ${wh(z)[1]}</span>` : ""}${i ? "" : '<span class="you">you</span>'}</div><div class="track">${pills}${labs}<span class="zmk" data-zm="${z}"></span></div></div>`;
     })
     .join("");
-  return `<section class="panel ${mode === "w" ? "work" : ""}"><h2>${title}</h2><div class="chart">${ruler()}${rows}<div class="layer"><div class="box"><i class="rh" title="Drag to change the meeting length"></i></div><div class="bdg"><b class="bt"></b><small>your local time</small></div></div></div><p class="foot">${foot}</p></section>`;
+  return `<section class="panel ${mode === "w" ? "work" : ""}"><h2>${title}</h2><div class="chart">${ruler()}${rows}<div class="slide" title="Drag here to move the meeting"></div><div class="layer"><div class="box"><i class="rh" title="Drag to change the meeting length"></i></div><div class="bdg"><b class="bt"></b><small>your local time</small></div></div></div><p class="foot">${foot}</p></section>`;
 }
 const dateVal = (d) =>
   d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -331,10 +331,13 @@ function render() {
       if (drag && resize) save();
       drag = resize = false;
     };
+    // Only the top strip (badge + hour scale) slides the meeting, and only the grip changes its length.
+    // Touching anywhere else on the chart is left alone so the page can scroll.
     c.addEventListener("pointerdown", (e) => {
       if (e.target.closest("button")) return;
-      drag = true;
       resize = !!e.target.closest(".rh");
+      if (!resize && !e.target.closest(".slide")) return;
+      drag = true;
       c.setPointerCapture(e.pointerId);
       if (!resize) set(e);
     });
